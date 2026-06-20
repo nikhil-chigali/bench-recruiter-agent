@@ -1,25 +1,40 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/lib/auth'
+import { ProfileProvider } from '@/lib/profile'
 import RequireAuth from '@/components/RequireAuth'
+import RequireOnboarded from '@/components/RequireOnboarded'
 import Login from '@/pages/Login'
-import Home from '@/pages/Home'
+import Onboarding from '@/pages/Onboarding'
+import Dashboard from '@/pages/Dashboard'
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <Home />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <ProfileProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/onboarding"
+              element={
+                <RequireAuth>
+                  <Onboarding />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <RequireOnboarded>
+                    <Dashboard />
+                  </RequireOnboarded>
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ProfileProvider>
       </AuthProvider>
     </BrowserRouter>
   )

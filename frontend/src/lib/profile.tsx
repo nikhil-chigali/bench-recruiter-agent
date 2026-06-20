@@ -24,54 +24,63 @@ type MeResponse = {
   recruiter: Recruiter | null
 }
 
-type ProfileContextValue = {
+type ProfileState = {
   loading: boolean
   onboarded: boolean
   recruiter: Recruiter | null
   error: string | null
+}
+
+type ProfileContextValue = ProfileState & {
   refresh: () => Promise<void>
+}
+
+const RESET_STATE: ProfileState = {
+  loading: false,
+  onboarded: false,
+  recruiter: null,
+  error: null,
 }
 
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { session, signOut } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [onboarded, setOnboarded] = useState(false)
-  const [recruiter, setRecruiter] = useState<Recruiter | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<ProfileState>({
+    loading: true,
+    onboarded: false,
+    recruiter: null,
+    error: null,
+  })
 
   const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setState((s) => ({ ...s, loading: true, error: null }))
     try {
       const me = await api.get<MeResponse>('/me')
-      setOnboarded(me.onboarded)
-      setRecruiter(me.recruiter)
+      setState({ loading: false, onboarded: me.onboarded, recruiter: me.recruiter, error: null })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         await signOut()
         return
       }
-      setError(e instanceof Error ? e.message : 'Failed to load profile')
-    } finally {
-      setLoading(false)
+      setState((s) => ({
+        ...s,
+        loading: false,
+        error: e instanceof Error ? e.message : 'Failed to load profile',
+      }))
     }
   }, [signOut])
 
   useEffect(() => {
     if (!session) {
-      setLoading(false)
-      setOnboarded(false)
-      setRecruiter(null)
-      setError(null)
+      setState(RESET_STATE)
       return
     }
     void load()
   }, [session, load])
 
   return (
-    <ProfileContext.Provider value={{ loading, onboarded, recruiter, error, refresh: load }}>
+    <ProfileContext.Provider value={{ ...state, refresh: load }}>
       {children}
     </ProfileContext.Provider>
   )

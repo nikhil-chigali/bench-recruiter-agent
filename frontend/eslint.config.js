@@ -20,7 +20,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**', 'src/lib/auth.tsx'],
+    files: ['src/components/ui/**', 'src/lib/auth.tsx', 'src/lib/profile.tsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
