@@ -11,6 +11,7 @@ Status: **draft, under review.**
 
 ```mermaid
 erDiagram
+    ORG ||--o{ RECRUITER : employs
     RECRUITER ||--o{ CANDIDATE : manages
     CANDIDATE ||--o{ CANDIDATE_EDUCATION : has
     CANDIDATE ||--o{ CANDIDATE_EXPERIENCE : has
@@ -20,9 +21,17 @@ erDiagram
     CANDIDATE ||--o{ APPLICATION : "applies via"
     JOB_POSTING ||--o{ APPLICATION : "targeted by"
 
+    ORG {
+        uuid id PK
+        text name
+        uuid owner_recruiter_id FK "the org owner"
+        timestamptz created_at
+        timestamptz updated_at
+    }
     RECRUITER {
         uuid id PK "= Supabase auth user id"
-        uuid org_id
+        uuid org_id FK
+        text role "owner | admin | recruiter"
         text name
         text email UK
         timestamptz created_at
@@ -30,7 +39,7 @@ erDiagram
     }
     CANDIDATE {
         uuid id PK
-        uuid org_id
+        uuid org_id FK
         uuid recruiter_id FK
         text name
         text email
@@ -94,7 +103,7 @@ erDiagram
     }
     JOB_POSTING {
         uuid id PK
-        uuid org_id
+        uuid org_id FK
         text title
         text description
         text location
@@ -110,7 +119,7 @@ erDiagram
     }
     APPLICATION {
         uuid id PK
-        uuid org_id
+        uuid org_id FK
         uuid candidate_id FK
         uuid job_posting_id FK
         text status "see enums"
@@ -126,6 +135,7 @@ erDiagram
 
 ## Enumerations
 
+- **recruiter.role:** `owner`, `admin`, `recruiter`.
 - **candidate.work_authorization / job_posting.work_authorization:**
   `USC` (US citizen), `GC` (green card), `GC_EAD`, `H1B`, `OPT`, `STEM_OPT`, `L2_EAD`,
   `TN`, `OTHER`. On a candidate it states their status; on a posting it states the
@@ -143,6 +153,10 @@ erDiagram
   data-isolation boundary). MVP is single-org; multi-recruiter is later enabled via RLS +
   middleware, never a column-shape migration. Distinct from `recruiter_id`, which is
   candidate ownership within an org.
+- **Org & roles:** `org_id` is a FK to `ORG`. `recruiter.role` (`owner | admin |
+  recruiter`) and `org.owner_recruiter_id` model who administers the org. Role-based
+  permissions (add/remove recruiters, assign candidates, org-level stats) and the admin UI
+  are future scope — only the entities and the role column exist now.
 - **One recruiter per candidate** for now; a candidate shared across recruiters is a
   future change (would become a join table).
 - **Job-posting contact** = the *hiring-side* recruiter the BSR emails outreach to — not
