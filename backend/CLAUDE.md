@@ -23,7 +23,7 @@ backend/
 │   ├── main.py            # app factory, lifespan, router registration
 │   ├── config.py          # callup.config.settings — single source of truth
 │   ├── secrets.py         # the only module that resolves creds/tokens
-│   ├── api/               # deps.py + routes/ (thin HTTP layer only)
+│   ├── api/               # deps.py, schemas.py + routes/ (thin HTTP layer only)
 │   ├── db/                # base.py, enums.py, models/ (package), session.py, repositories.py
 │   ├── llm/               # client.py, embeddings.py, prompts/
 │   ├── services/          # fetch, candidates, match, generate, apply, outreach

@@ -3,7 +3,8 @@
 Callup automates bench-sales recruiting. A recruiter manages a set of consultants
 ("candidates") and Callup does the heavy lifting: it fetches and normalizes job postings
 from Dice, ranks them against each candidate, generates truthful tailored resumes and
-cold-email drafts, assists with applications, and tracks every application to completion.
+hiring-manager outreach drafts, assists with applications, and tracks every application to
+completion.
 
 ## Monorepo layout
 

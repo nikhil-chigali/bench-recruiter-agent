@@ -43,7 +43,7 @@ If yes to (3), add it — but flag the decision in the commit message.
 frontend/
 ├── src/
 │   ├── components/        # App components. shadcn primitives under components/ui/
-│   ├── lib/               # Framework-agnostic helpers (http, api, sse, auth, supabase, env)
+│   ├── lib/               # Framework-agnostic helpers (http, api, sse, auth, profile, supabase, env)
 │   ├── pages/             # Route-level components (candidates, matches, applications, apply-session, outreach)
 │   ├── App.tsx            # Router
 │   ├── main.tsx
