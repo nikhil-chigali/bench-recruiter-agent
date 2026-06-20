@@ -49,11 +49,19 @@ separate outreach record) land as migrations when their slice arrives — see
 Carried out of completed slices; fold into a later slice when convenient.
 
 - **Integration test transaction-rollback fixture.** DB integration tests (e.g.
-  `provision_recruiter`) currently create rows in the live Supabase DB and clean up in
+  `create_owned_org`) currently create rows in the live Supabase DB and clean up in
   a `finally` block — a failed assertion mid-test can orphan rows (it did once, leaving
   a circular-FK'd org+recruiter that had to be deleted by hand). Add a shared
   session-fixture that runs each integration test inside a transaction and rolls back,
-  so nothing ever persists. (From slice 1.)
+  so nothing ever persists. When it lands, also restore the stronger idempotency
+  assertion (`second.name == "Jane"`) dropped in slice 2. (From slice 1/2.)
+- **Onboarding/profile sign-out robustness.** In `frontend/src/lib/profile.tsx`, set
+  `loading:false` directly on the 401 branch (don't rely on the session-null effect),
+  and handle a `signOut()` rejection so a failed sign-out can't strand the user on the
+  retry screen with a stale session. (Slice 2.)
+- **201 happy-path route test for `POST /orgs`** with a fake session that returns the
+  org on backfill (success path is currently only covered via the `create_owned_org`
+  integration test). (Slice 2.)
 - **Frontend 401 handling.** `ProfileProvider` now signs out on a 401 from `/me`
   (slice 2). Still pending: make this *global* in the `api` client so any 401 from any
   endpoint redirects to `/login`, not just the profile fetch. (Slice 1/2.)
