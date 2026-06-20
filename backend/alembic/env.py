@@ -6,8 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
-from callup.config import settings
 from callup.db.models import Base
+from callup.db.session import engine_connect_args, engine_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -40,7 +40,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.database_url
+    url = engine_url().render_as_string(hide_password=False)
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,9 +66,9 @@ async def run_async_migrations() -> None:
     """
 
     connectable = create_async_engine(
-        settings.database_url,
+        engine_url(),
         poolclass=pool.NullPool,
-        connect_args={"ssl": True} if settings.database_ssl else {},
+        connect_args=engine_connect_args(),
     )
 
     async with connectable.connect() as connection:

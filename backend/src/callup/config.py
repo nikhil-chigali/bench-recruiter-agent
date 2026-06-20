@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # e.g. postgresql+asyncpg://user:pass@host:5432/postgres
     # Do NOT put ?sslmode=... in the URL — asyncpg rejects it; use database_ssl instead.
     database_url: str
+    # Supplied separately so passwords with special characters don't need URL-encoding;
+    # injected via connect_args and overrides any password in database_url. Optional —
+    # leave unset if the password is already embedded (and encoded) in database_url.
+    database_password: str | None = None
     database_ssl: bool = True  # Supabase requires SSL; set False for a local non-SSL Postgres.
 
     # LLM (Anthropic). One provider, accessed only through the llm/ abstraction.
@@ -38,7 +42,7 @@ class Settings(BaseSettings):
     # Optional until resume generation lands; required before Phase 4.
     supabase_url: str | None = None
     supabase_service_key: str | None = None
-    storage_bucket: str = "resumes"
+    storage_bucket: str = "candidate-files"
 
     # Matching.
     match_freshness_days: int = 30
