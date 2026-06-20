@@ -1,0 +1,43 @@
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, field_validator
+
+from callup.api.deps import CurrentClaims, SessionDep
+from callup.api.schemas import RecruiterOut
+from callup.db import repositories
+from callup.db.models import Org
+
+router = APIRouter(tags=["orgs"])
+
+
+class OrgCreateIn(BaseModel):
+    org_name: str
+    display_name: str
+
+    @field_validator("org_name", "display_name")
+    @classmethod
+    def _clean(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be blank")
+        if len(v) > 120:
+            raise ValueError("must be at most 120 characters")
+        return v
+
+
+@router.post("/orgs", response_model=RecruiterOut, status_code=status.HTTP_201_CREATED)
+async def create_org(body: OrgCreateIn, claims: CurrentClaims, session: SessionDep) -> RecruiterOut:
+    existing = await repositories.get_recruiter(session, claims.sub)
+    if existing is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "already onboarded")
+    recruiter = await repositories.create_owned_org(
+        session, claims.sub, claims.email, body.org_name, body.display_name
+    )
+    org = await session.get(Org, recruiter.org_id)
+    return RecruiterOut(
+        id=recruiter.id,
+        email=recruiter.email,
+        name=recruiter.name,
+        role=recruiter.role,
+        org_id=recruiter.org_id,
+        org_name=org.name,
+    )
