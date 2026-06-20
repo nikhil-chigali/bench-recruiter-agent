@@ -50,8 +50,12 @@ export default function InvitesSection() {
   }
 
   async function revoke(id: string) {
-    await api.delete(`/invitations/${id}`)
-    load()
+    try {
+      await api.delete(`/invitations/${id}`)
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to revoke invite')
+    }
   }
 
   return (

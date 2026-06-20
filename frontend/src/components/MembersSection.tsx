@@ -37,13 +37,21 @@ export default function MembersSection() {
   const actorRole = recruiter.role
 
   async function changeRole(id: string, role: string) {
-    await api.patch(`/members/${id}`, { role })
-    load()
+    try {
+      await api.patch(`/members/${id}`, { role })
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update role')
+    }
   }
 
   async function remove(id: string) {
-    await api.delete(`/members/${id}`)
-    load()
+    try {
+      await api.delete(`/members/${id}`)
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to remove member')
+    }
   }
 
   return (

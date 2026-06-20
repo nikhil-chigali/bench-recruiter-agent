@@ -23,7 +23,10 @@ export default function DangerZone() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.get<Member[]>('/members').then(setMembers).catch(() => undefined)
+    api
+      .get<Member[]>('/members')
+      .then(setMembers)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load members'))
   }, [])
 
   if (!recruiter) return null
