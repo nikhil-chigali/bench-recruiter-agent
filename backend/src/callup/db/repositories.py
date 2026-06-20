@@ -154,3 +154,49 @@ async def accept_invitation(
     await session.commit()
     await session.refresh(recruiter)
     return recruiter
+
+
+async def list_members(session: AsyncSession, org_id: uuid.UUID) -> list[Recruiter]:
+    result = await session.execute(
+        select(Recruiter).where(Recruiter.org_id == org_id).order_by(Recruiter.created_at)
+    )
+    return list(result.scalars().all())
+
+
+async def get_member(
+    session: AsyncSession, recruiter_id: uuid.UUID, org_id: uuid.UUID
+) -> Recruiter | None:
+    member = await session.get(Recruiter, recruiter_id)
+    return member if member is not None and member.org_id == org_id else None
+
+
+async def update_member_role(session: AsyncSession, member: Recruiter, role: str) -> Recruiter:
+    member.role = role
+    await session.commit()
+    await session.refresh(member)
+    return member
+
+
+async def remove_member(session: AsyncSession, member: Recruiter) -> None:
+    await session.delete(member)
+    await session.commit()
+
+
+async def transfer_ownership(
+    session: AsyncSession, org: Org, old_owner: Recruiter, new_owner: Recruiter
+) -> None:
+    new_owner.role = RecruiterRole.OWNER.value
+    old_owner.role = RecruiterRole.ADMIN.value
+    org.owner_recruiter_id = new_owner.id
+    await session.commit()
+
+
+async def delete_org(session: AsyncSession, org: Org) -> None:
+    """FK-safe cascade: null the circular owner FK, then delete invites, members, org."""
+    await session.execute(
+        update(Org).where(Org.id == org.id).values(owner_recruiter_id=None)
+    )
+    await session.execute(delete(Invitation).where(Invitation.org_id == org.id))
+    await session.execute(delete(Recruiter).where(Recruiter.org_id == org.id))
+    await session.execute(delete(Org).where(Org.id == org.id))
+    await session.commit()
