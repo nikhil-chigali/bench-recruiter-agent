@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from callup.api.routes import health, invitations, me, orgs
+from callup.api.routes import health, invitations, me, members, orgs
 from callup.config import settings
 from callup.db.session import engine
 
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router)
     app.include_router(orgs.router)
     app.include_router(invitations.router)
+    app.include_router(members.router)
     return app
 
 

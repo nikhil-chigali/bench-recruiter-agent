@@ -1,7 +1,10 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, field_validator
 
-from callup.api.deps import CurrentClaims, SessionDep
+from callup.api.deps import CurrentClaims, CurrentRecruiter, SessionDep
+from callup.api.permissions import ensure_owner
 from callup.api.schemas import RecruiterOut
 from callup.db import repositories
 from callup.db.models import Org
@@ -41,3 +44,28 @@ async def create_org(body: OrgCreateIn, claims: CurrentClaims, session: SessionD
         org_id=recruiter.org_id,
         org_name=org.name,
     )
+
+
+class TransferIn(BaseModel):
+    recruiter_id: uuid.UUID
+
+
+@router.post("/orgs/transfer-ownership", status_code=204)
+async def transfer_ownership(
+    body: TransferIn, actor: CurrentRecruiter, session: SessionDep
+) -> None:
+    ensure_owner(actor)
+    target = await repositories.get_member(session, body.recruiter_id, actor.org_id)
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "member not found")
+    if target.id == actor.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "already the owner")
+    org = await session.get(Org, actor.org_id)
+    await repositories.transfer_ownership(session, org, actor, target)
+
+
+@router.delete("/orgs/current", status_code=204)
+async def delete_current_org(actor: CurrentRecruiter, session: SessionDep) -> None:
+    ensure_owner(actor)
+    org = await session.get(Org, actor.org_id)
+    await repositories.delete_org(session, org)
