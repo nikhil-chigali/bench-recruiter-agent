@@ -21,8 +21,11 @@ async def _seed_owner_and_member() -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
         org_id = owner.org_id
         s.add(
             Recruiter(
-                id=member_id, org_id=org_id, role="recruiter",
-                name="Member", email=f"{member_id}@example.com",
+                id=member_id,
+                org_id=org_id,
+                role="recruiter",
+                name="Member",
+                email=f"{member_id}@example.com",
             )
         )
         await s.commit()
@@ -86,8 +89,12 @@ async def test_delete_org_cascades():
         async with SessionFactory() as s:
             s.add(
                 Invitation(
-                    org_id=org_id, email="x@example.com", role="recruiter",
-                    invited_by=owner_id, token_hash=f"h-{uuid.uuid4()}", status="pending",
+                    org_id=org_id,
+                    email="x@example.com",
+                    role="recruiter",
+                    invited_by=owner_id,
+                    token_hash=f"h-{uuid.uuid4()}",
+                    status="pending",
                     expires_at=datetime.now(tz=UTC) + timedelta(days=7),
                 )
             )
@@ -98,13 +105,9 @@ async def test_delete_org_cascades():
             deleted = True
         async with SessionFactory() as s:
             assert await s.get(Org, org_id) is None
-            remaining = await s.scalar(
-                select(Recruiter).where(Recruiter.org_id == org_id).limit(1)
-            )
+            remaining = await s.scalar(select(Recruiter).where(Recruiter.org_id == org_id).limit(1))
             assert remaining is None
-            inv = await s.scalar(
-                select(Invitation).where(Invitation.org_id == org_id).limit(1)
-            )
+            inv = await s.scalar(select(Invitation).where(Invitation.org_id == org_id).limit(1))
             assert inv is None
     finally:
         if not deleted:

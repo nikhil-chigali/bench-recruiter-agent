@@ -36,9 +36,13 @@ async def test_create_and_accept_invitation_creates_member():
     try:
         async with SessionFactory() as s:
             inv = await repositories.create_invitation(
-                s, org_id, "alice@example.com", "recruiter",
+                s,
+                org_id,
+                "alice@example.com",
+                "recruiter",
                 invited_by=(await _owner_id(s, org_id)),
-                token_hash="hash-a", expires_at=datetime.now(tz=UTC) + timedelta(days=7),
+                token_hash="hash-a",
+                expires_at=datetime.now(tz=UTC) + timedelta(days=7),
             )
             assert inv.status == InvitationStatus.PENDING.value
         async with SessionFactory() as s:
@@ -65,13 +69,23 @@ async def test_reinvite_revokes_prior_pending():
         async with SessionFactory() as s:
             oid = await _owner_id(s, org_id)
             await repositories.create_invitation(
-                s, org_id, "bob@example.com", "recruiter", oid, "hash-b1",
+                s,
+                org_id,
+                "bob@example.com",
+                "recruiter",
+                oid,
+                "hash-b1",
                 datetime.now(tz=UTC) + timedelta(days=7),
             )
         async with SessionFactory() as s:
             oid = await _owner_id(s, org_id)
             await repositories.create_invitation(
-                s, org_id, "bob@example.com", "admin", oid, "hash-b2",
+                s,
+                org_id,
+                "bob@example.com",
+                "admin",
+                oid,
+                "hash-b2",
                 datetime.now(tz=UTC) + timedelta(days=7),
             )
         async with SessionFactory() as s:

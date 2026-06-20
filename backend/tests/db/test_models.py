@@ -9,9 +9,18 @@ def test_invitation_status_values():
 def test_invitation_table_registered():
     table = Base.metadata.tables["invitation"]
     expected = {
-        "id", "org_id", "email", "role", "token_hash", "status",
-        "invited_by", "expires_at", "accepted_at", "accepted_by",
-        "created_at", "updated_at",
+        "id",
+        "org_id",
+        "email",
+        "role",
+        "token_hash",
+        "status",
+        "invited_by",
+        "expires_at",
+        "accepted_at",
+        "accepted_by",
+        "created_at",
+        "updated_at",
     }
     assert expected <= set(table.columns.keys())
     assert table.columns["token_hash"].unique is True
