@@ -43,7 +43,10 @@ async def test_me_returns_recruiter_profile():
 
 
 async def test_me_without_token_is_unauthorized():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/me")
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/me")
+    finally:
+        app.dependency_overrides.clear()
     assert response.status_code == 401

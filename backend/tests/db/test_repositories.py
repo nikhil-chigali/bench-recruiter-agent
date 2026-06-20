@@ -1,7 +1,7 @@
 import uuid
 
 import pytest
-from sqlalchemy import delete, update
+from sqlalchemy import delete, func, select, update
 
 from callup.db import repositories
 from callup.db.models import Org, Recruiter
@@ -48,6 +48,11 @@ async def test_provision_recruiter_is_idempotent():
             second = await repositories.provision_recruiter(s2, rid, email, "Test")
             assert second.id == rid
             assert second.org_id == org_id
+            assert second.name == "Test"
+            org_count = await s2.scalar(
+                select(func.count()).select_from(Org).where(Org.owner_recruiter_id == rid)
+            )
+            assert org_count == 1
         # exactly one recruiter, one org for this id
         async with SessionFactory() as s3:
             assert await repositories.get_recruiter(s3, rid) is not None

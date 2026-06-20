@@ -21,8 +21,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
     app.include_router(health.router)
     app.include_router(me.router)

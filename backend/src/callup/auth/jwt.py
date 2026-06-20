@@ -61,6 +61,7 @@ def verify_token(token: str) -> TokenClaims:
             signing_key.key,
             algorithms=["ES256", "RS256"],
             audience=settings.supabase_jwt_aud,
+            issuer=f"{settings.supabase_url.rstrip('/')}/auth/v1",
         )
     except jwt.InvalidTokenError as exc:
         raise AuthError(str(exc)) from exc

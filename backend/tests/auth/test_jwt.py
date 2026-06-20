@@ -27,6 +27,9 @@ def _patch_jwks(monkeypatch, keypair):
             return _FakeKey()
 
     monkeypatch.setattr(auth_jwt, "_client", lambda: _FakeClient())
+    # Pin supabase_url so the issuer check matches the "https://test.supabase.co/auth/v1"
+    # claim baked into _make_token, regardless of what .env contains.
+    monkeypatch.setattr(auth_jwt.settings, "supabase_url", "https://test.supabase.co")
 
 
 def _make_token(private_key, **overrides):
@@ -35,6 +38,7 @@ def _make_token(private_key, **overrides):
         "sub": str(uuid.uuid4()),
         "email": "rec@example.com",
         "aud": "authenticated",
+        "iss": "https://test.supabase.co/auth/v1",
         "exp": now + dt.timedelta(hours=1),
         "iat": now,
     }
@@ -69,5 +73,12 @@ def test_verify_token_wrong_audience(keypair):
 def test_verify_token_missing_email(keypair):
     private_key, _ = keypair
     token = _make_token(private_key, email=None)
+    with pytest.raises(AuthError):
+        verify_token(token)
+
+
+def test_verify_token_wrong_issuer(keypair):
+    private_key, _ = keypair
+    token = _make_token(private_key, iss="https://evil.example.com/auth/v1")
     with pytest.raises(AuthError):
         verify_token(token)
