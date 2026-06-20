@@ -12,7 +12,7 @@ Status: ⬜ not started · ▶ in progress · ✅ done
 | 0 | DB schema v1 | 10 base tables live in Supabase | ✅ |
 | 1 | Auth + recruiter/org bootstrap | Email login → first sign-in establishes your identity | ✅ |
 | 2 | Onboarding + dashboard | First sign-in → onboarding (create org, become owner) → dashboard showing org + your role | ✅ |
-| 3 | Team invitations & roles | Owner/admin invite recruiters/admins via shareable link; members management + role-gated permissions | ▶ |
+| 3 | Team invitations & roles | Owner/admin invite recruiters/admins via shareable link; members management + role-gated permissions | ✅ |
 | 4 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ⬜ |
 | 5 | Candidate documents | Upload candidate files to Supabase Storage; list them on the candidate | ⬜ |
 | 6 | Job postings (manual) | Create / list / view job postings by hand, incl. hiring-side contact | ⬜ |
@@ -71,3 +71,11 @@ Carried out of completed slices; fold into a later slice when convenient.
   hand-declaring response types (e.g. `Me`) on the frontend. (Slice 1.)
 - **Harden the conftest `.env` mini-parser** (quoted values / inline comments) if the
   backend `.env` ever needs them. (Slice 1.)
+- **Partial unique index on invitations.** Add `unique(org_id, email) WHERE status =
+  'pending'` in a migration so "one pending invite per email per org" and the
+  concurrent-accept guard are enforced at the DB, not just in application logic. Today
+  `create_invitation` revokes-then-inserts (a benign TOCTOU under concurrency) and the
+  accept race is handled by catching `IntegrityError` → 409. (Slice 3.)
+- **Slice-3 manual browser smoke test.** The two-account end-to-end flow (owner invites →
+  copy link → second account accepts → roster → role change → remove → transfer → delete)
+  was deferred to the maintainer; verify in-browser. (Slice 3.)
