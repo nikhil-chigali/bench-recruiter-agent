@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from callup.api.deps import get_current_claims, get_current_recruiter
 from callup.auth.jwt import TokenClaims
 from callup.db import repositories
-from callup.db.models import Invitation, Recruiter
+from callup.db.models import Invitation, Org, Recruiter
 from callup.db.session import get_session
 from callup.main import app
 
@@ -114,5 +114,66 @@ async def test_accept_non_pending_conflicts(monkeypatch):
                 "/invitations/accept", json={"token": "raw", "display_name": "Actor"}
             )
         assert resp.status_code == 409
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_accept_expired_conflicts(monkeypatch):
+    inv = Invitation(
+        id=uuid.uuid4(),
+        org_id=ORG,
+        email="actor@example.com",
+        role="recruiter",
+        invited_by=uuid.uuid4(),
+        token_hash="h",
+        status="pending",
+        expires_at=datetime.now(tz=UTC) - timedelta(days=1),
+    )
+
+    async def fake_lookup(session, token_hash):
+        return inv
+
+    monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
+    app.dependency_overrides[get_current_claims] = _claims
+    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/invitations/accept", json={"token": "raw", "display_name": "Actor"}
+            )
+        assert resp.status_code == 409
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_lookup_returns_expired_status(monkeypatch):
+    inv = Invitation(
+        id=uuid.uuid4(),
+        org_id=ORG,
+        email="actor@example.com",
+        role="recruiter",
+        invited_by=uuid.uuid4(),
+        token_hash="h",
+        status="pending",
+        expires_at=datetime.now(tz=UTC) - timedelta(days=1),
+    )
+
+    async def fake_lookup(session, token_hash):
+        return inv
+
+    class _SessionWithOrg:
+        async def get(self, model, pk):
+            if model is Org:
+                return Org(id=ORG, name="Acme")
+            return None
+
+    monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
+    app.dependency_overrides[get_current_claims] = _claims
+    app.dependency_overrides[get_session] = lambda: _SessionWithOrg()
+    try:
+        async with await _client() as c:
+            resp = await c.get("/invitations/lookup?token=raw")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "expired"
     finally:
         app.dependency_overrides.clear()

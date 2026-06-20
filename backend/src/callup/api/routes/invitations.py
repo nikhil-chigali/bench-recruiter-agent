@@ -157,5 +157,5 @@ async def accept_invitation(
         name=recruiter.name,
         role=recruiter.role,
         org_id=recruiter.org_id,
-        org_name=org.name,
+        org_name=org.name if org else "",
     )
