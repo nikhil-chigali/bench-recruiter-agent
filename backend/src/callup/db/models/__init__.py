@@ -8,6 +8,7 @@ from callup.db.models.candidate import (
     CandidateExperience,
     CandidateProject,
 )
+from callup.db.models.invitation import Invitation
 from callup.db.models.job import JobPosting
 from callup.db.models.org import Org, Recruiter
 
@@ -15,6 +16,7 @@ __all__ = [
     "Base",
     "Org",
     "Recruiter",
+    "Invitation",
     "Candidate",
     "CandidateEducation",
     "CandidateExperience",

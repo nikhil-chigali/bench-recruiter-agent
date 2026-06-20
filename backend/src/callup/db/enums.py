@@ -50,3 +50,9 @@ class DocumentType(StrEnum):
     VISA_PROOF = "visa_proof"
     I94 = "i94"
     OTHER = "other"
+
+
+class InvitationStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REVOKED = "revoked"

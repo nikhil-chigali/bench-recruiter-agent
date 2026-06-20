@@ -27,6 +27,7 @@ Newest last.
 | Revision | Down | Date | Summary |
 |----------|------|------|---------|
 | `161a7bd63439` | `base` | 2026-06-20 | v1 skeleton — creates the 10 base tables |
+| `e3546d70251d` | `161a7bd63439` | 2026-06-20 | Adds the `invitation` table (team invites) |
 
 ### `161a7bd63439` — initial schema
 
@@ -43,3 +44,9 @@ v1 skeleton. Creates the 10 base tables: `org`, `recruiter`, `candidate`,
 **Deferred to later phases:** pgvector embeddings, Dice ingestion fields, fitment scores,
 a normalized contacts table, the apply-session state machine, and a separate outreach
 record.
+
+### `e3546d70251d` — add invitation table
+
+Adds `invitation` for slice 3 team invites: `org_id` tenancy FK + index, `email`, `role`,
+unique `token_hash` (sha256 of the link token), `status` (`pending`/`accepted`/`revoked`),
+`invited_by` + nullable `accepted_by` FKs to `recruiter`, `expires_at`/`accepted_at`.
