@@ -1,12 +1,16 @@
 import { useAuth } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import MembersSection from '@/components/MembersSection'
+import InvitesSection from '@/components/InvitesSection'
+import DangerZone from '@/components/DangerZone'
 
 export default function Dashboard() {
   const { signOut } = useAuth()
   const { recruiter } = useProfile()
   if (!recruiter) return null
+  const isManager = recruiter.role === 'owner' || recruiter.role === 'admin'
+  const isOwner = recruiter.role === 'owner'
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -21,16 +25,10 @@ export default function Dashboard() {
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-6">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Welcome, {recruiter.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-muted-foreground text-sm">
-            You're the <span className="text-foreground font-medium">{recruiter.role}</span> of{' '}
-            <span className="text-foreground font-medium">{recruiter.org_name}</span>.
-          </CardContent>
-        </Card>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6">
+        <MembersSection />
+        {isManager && <InvitesSection />}
+        {isOwner && <DangerZone />}
       </main>
     </div>
   )
