@@ -18,17 +18,21 @@ async def get_recruiter(session: AsyncSession, recruiter_id: uuid.UUID) -> Recru
     return await session.get(Recruiter, recruiter_id)
 
 
-async def provision_recruiter(
-    session: AsyncSession, recruiter_id: uuid.UUID, email: str, name: str
+async def create_owned_org(
+    session: AsyncSession,
+    recruiter_id: uuid.UUID,
+    email: str,
+    org_name: str,
+    display_name: str,
 ) -> Recruiter:
-    """Create a new org owned by this recruiter and the recruiter row (id = auth uid).
+    """Create an org owned by this recruiter and the recruiter row (id = auth uid).
 
-    Idempotent: if a concurrent first request already created the row, the unique
-    violation is caught and the existing recruiter is returned. Order respects the
-    circular org<->recruiter FK: org first (owner null), recruiter next, then backfill
-    org.owner_recruiter_id.
+    The user becomes the org owner. Idempotent: if a concurrent request already created
+    the recruiter, the unique violation is caught and the existing row returned. Order
+    respects the circular org<->recruiter FK: org first (owner null), recruiter next,
+    then backfill org.owner_recruiter_id.
     """
-    org = Org(name=f"{email}'s workspace")
+    org = Org(name=org_name)
     session.add(org)
     await session.flush()  # assigns org.id
 
@@ -36,7 +40,7 @@ async def provision_recruiter(
         id=recruiter_id,
         org_id=org.id,
         role=RecruiterRole.OWNER.value,
-        name=name,
+        name=display_name,
         email=email,
     )
     session.add(recruiter)
