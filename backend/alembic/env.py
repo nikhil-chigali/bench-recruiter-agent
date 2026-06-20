@@ -65,7 +65,11 @@ async def run_async_migrations() -> None:
 
     """
 
-    connectable = create_async_engine(settings.database_url, poolclass=pool.NullPool)
+    connectable = create_async_engine(
+        settings.database_url,
+        poolclass=pool.NullPool,
+        connect_args={"ssl": True} if settings.database_ssl else {},
+    )
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

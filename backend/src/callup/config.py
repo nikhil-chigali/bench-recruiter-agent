@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     # Database. Use the direct/session connection string (asyncpg driver), NOT the
     # Supabase transaction pooler — Alembic and prepared statements need it.
     # e.g. postgresql+asyncpg://user:pass@host:5432/postgres
+    # Do NOT put ?sslmode=... in the URL — asyncpg rejects it; use database_ssl instead.
     database_url: str
+    database_ssl: bool = True  # Supabase requires SSL; set False for a local non-SSL Postgres.
 
     # LLM (Anthropic). One provider, accessed only through the llm/ abstraction.
     anthropic_api_key: str
