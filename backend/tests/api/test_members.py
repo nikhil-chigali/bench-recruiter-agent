@@ -61,7 +61,11 @@ async def test_cannot_remove_owner(monkeypatch):
         app.dependency_overrides.clear()
 
 
-async def test_patch_to_owner_rejected():
+async def test_patch_to_owner_rejected(monkeypatch):
+    async def fake_get_member(session, rid, org_id):
+        return _target("recruiter")
+
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
     app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
@@ -78,6 +82,21 @@ async def test_transfer_requires_owner():
     try:
         async with await _client() as c:
             resp = await c.post("/orgs/transfer-ownership", json={"recruiter_id": str(TARGET)})
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_cannot_remove_member(monkeypatch):
+    async def fake_get_member(session, rid, org_id):
+        return _target("recruiter")
+
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_recruiter] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.delete(f"/members/{TARGET}")
         assert resp.status_code == 403
     finally:
         app.dependency_overrides.clear()

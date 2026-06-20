@@ -59,7 +59,7 @@ async def transfer_ownership(
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "member not found")
     if target.id == actor.id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "already the owner")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "cannot transfer ownership to yourself")
     org = await session.get(Org, actor.org_id)
     await repositories.transfer_ownership(session, org, actor, target)
 
