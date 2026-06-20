@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
@@ -47,19 +47,19 @@ export default function AcceptInvite() {
     }
   }, [token])
 
-  if (!token) {
-    return (
-      <Centered>
-        <p className="text-destructive text-sm">This invite link is missing its token.</p>
-      </Centered>
-    )
-  }
-
   if (onboarded) {
     return (
       <Centered>
         <p className="text-muted-foreground text-sm">You're already part of an organization.</p>
         <Button onClick={() => navigate('/')}>Go to dashboard</Button>
+      </Centered>
+    )
+  }
+
+  if (!token) {
+    return (
+      <Centered>
+        <p className="text-destructive text-sm">This invite link is missing its token.</p>
       </Centered>
     )
   }
@@ -129,7 +129,7 @@ export default function AcceptInvite() {
   )
 }
 
-function Centered({ children }: { children: React.ReactNode }) {
+function Centered({ children }: { children: ReactNode }) {
   return (
     <main className="text-muted-foreground flex min-h-svh flex-col items-center justify-center gap-4 p-4 text-sm">
       {children}
