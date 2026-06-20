@@ -55,3 +55,4 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.black]
 line-length = 100
 target-version = ["py312"]
+extend-exclude = "alembic/versions"  # generated migrations (matches ruff)
