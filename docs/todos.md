@@ -10,8 +10,8 @@ Status: ⬜ not started · ▶ in progress · ✅ done
 | # | Slice | Delivers (testable on screen) | Status |
 |---|-------|-------------------------------|--------|
 | 0 | DB schema v1 | 10 base tables live in Supabase | ✅ |
-| 1 | **Auth + recruiter/org bootstrap** | Email login → protected home greets you, shows your org; first sign-in provisions your `recruiter` + owned `org` | ▶ |
-| 2 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ⬜ |
+| 1 | **Auth + recruiter/org bootstrap** | Email login → protected home greets you, shows your org; first sign-in provisions your `recruiter` + owned `org` | ✅ |
+| 2 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ▶ |
 | 3 | Candidate documents | Upload candidate files to Supabase Storage; list them on the candidate | ⬜ |
 | 4 | Job postings (manual) | Create / list / view job postings by hand, incl. hiring-side contact | ⬜ |
 | 5 | Job ingestion (Dice) | Autonomous worker fetches + normalizes + dedupes Dice postings into the same job list | ⬜ |
