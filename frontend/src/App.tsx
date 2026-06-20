@@ -6,6 +6,7 @@ import RequireOnboarded from '@/components/RequireOnboarded'
 import Login from '@/pages/Login'
 import Onboarding from '@/pages/Onboarding'
 import Dashboard from '@/pages/Dashboard'
+import AcceptInvite from '@/pages/AcceptInvite'
 
 export default function App() {
   return (
@@ -29,6 +30,14 @@ export default function App() {
                   <RequireOnboarded>
                     <Dashboard />
                   </RequireOnboarded>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/accept-invite"
+              element={
+                <RequireAuth>
+                  <AcceptInvite />
                 </RequireAuth>
               }
             />

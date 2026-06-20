@@ -68,6 +68,9 @@ export default function Onboarding() {
               {busy ? 'Creating…' : 'Create workspace'}
             </Button>
           </form>
+            <p className="text-muted-foreground mt-4 text-sm">
+              Have an invite? Open the invite link your admin sent you.
+            </p>
         </CardContent>
       </Card>
     </main>
