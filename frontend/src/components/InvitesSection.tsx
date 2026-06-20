@@ -36,11 +36,12 @@ export default function InvitesSection() {
     setError(null)
     setLastLink(null)
     setBusy(true)
-    const email = String(new FormData(e.currentTarget).get('email')).trim()
+    const form = e.currentTarget
+    const email = String(new FormData(form).get('email')).trim()
     try {
       const created = await api.post<Created>('/invitations', { email, role })
       setLastLink(created.accept_url)
-      e.currentTarget.reset()
+      form.reset()
       load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the invite')
