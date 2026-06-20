@@ -1,8 +1,26 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from '@/lib/auth'
+import RequireAuth from '@/components/RequireAuth'
+import Login from '@/pages/Login'
+import Home from '@/pages/Home'
+
 export default function App() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-2">
-      <h1 className="text-3xl font-semibold tracking-tight">Callup</h1>
-      <p className="text-muted-foreground text-sm">Recruiter portal — scaffold</p>
-    </main>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <Home />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
