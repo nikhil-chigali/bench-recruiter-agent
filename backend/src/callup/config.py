@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     supabase_service_key: str | None = None
     storage_bucket: str = "candidate-files"
 
+    # Auth. The Supabase JWT audience claim and the project's JWKS endpoint
+    # ({supabase_url}/auth/v1/.well-known/jwks.json) are used to verify bearer tokens.
+    supabase_jwt_aud: str = "authenticated"
+
     # Matching.
     match_freshness_days: int = 30
     match_top_k: int = 25
