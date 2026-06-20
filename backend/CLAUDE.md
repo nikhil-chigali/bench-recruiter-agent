@@ -24,7 +24,7 @@ backend/
 │   ├── config.py          # callup.config.settings — single source of truth
 │   ├── secrets.py         # the only module that resolves creds/tokens
 │   ├── api/               # deps.py + routes/ (thin HTTP layer only)
-│   ├── db/                # models.py, session.py, repositories.py
+│   ├── db/                # base.py, enums.py, models/ (package), session.py, repositories.py
 │   ├── llm/               # client.py, embeddings.py, prompts/
 │   ├── services/          # fetch, candidates, match, generate, apply, outreach
 │   └── workers/           # queue.py, scheduler.py, tasks/
@@ -54,7 +54,9 @@ backend/
 - Supabase/Postgres-specific features belong in explicit migration operations: `create extension vector`, HNSW indexes (`vector_cosine_ops`), partial indexes, RLS enablement, and RLS policies.
 - The `org_id` tenancy column ships on every business table from the first migration even though MVP runs single-org. Turning on multi-recruiter is RLS + middleware, never a column-shape migration — keep it that way.
 - Alembic must use the direct/session database connection, **not** the Supabase transaction pooler URL.
-- Run migrations from `backend/` with `uv run alembic upgrade head`.
+- Run migrations from `backend/` with `uv run alembic upgrade head`. The running migration log lives in [`alembic/README.md`](./alembic/README.md) — add a table row and a detail section per migration.
+- asyncpg rejects `?sslmode=` in the URL: SSL is configured via the `database_ssl` setting (`connect_args ssl="require"` for the Supabase pooler), and the DB password may be supplied out-of-URL via `database_password` to avoid URL-encoding issues.
+- Enum-like columns (roles, statuses, work auth, etc.) are stored as plain strings and validated at the boundary via `callup.db.enums` — not Postgres enum types — so the value sets stay easy to evolve.
 
 ## Workers & the apply session
 

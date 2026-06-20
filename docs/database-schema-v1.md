@@ -5,7 +5,7 @@ scores, Dice ingestion metadata, a normalized hiring-contact table, the apply-se
 state machine, and a separate outreach record) is intentionally **deferred** and will be
 added by later migrations as those phases land.
 
-Status: **draft, under review.**
+Status: **locked (v1)** — implemented in Alembic migration `161a7bd63439` and applied to Supabase.
 
 ## ERD
 
