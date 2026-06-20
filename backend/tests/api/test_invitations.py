@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import IntegrityError
 
 from callup.api.deps import get_current_claims, get_current_recruiter
 from callup.auth.jwt import TokenClaims
@@ -175,5 +176,37 @@ async def test_lookup_returns_expired_status(monkeypatch):
             resp = await c.get("/invitations/lookup?token=raw")
         assert resp.status_code == 200
         assert resp.json()["status"] == "expired"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_accept_race_conflicts(monkeypatch):
+    inv = Invitation(
+        id=uuid.uuid4(),
+        org_id=ORG,
+        email="actor@example.com",
+        role="recruiter",
+        invited_by=uuid.uuid4(),
+        token_hash="h",
+        status="pending",
+        expires_at=datetime.now(tz=UTC) + timedelta(days=7),
+    )
+
+    async def fake_lookup(session, token_hash):
+        return inv
+
+    async def fake_accept(*args, **kwargs):
+        raise IntegrityError("stmt", {}, Exception("dup"))
+
+    monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
+    monkeypatch.setattr(repositories, "accept_invitation", fake_accept)
+    app.dependency_overrides[get_current_claims] = _claims
+    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/invitations/accept", json={"token": "raw", "display_name": "Actor"}
+            )
+        assert resp.status_code == 409
     finally:
         app.dependency_overrides.clear()

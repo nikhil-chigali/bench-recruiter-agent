@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, field_validator
+from sqlalchemy.exc import IntegrityError
 
 from callup.api.deps import CurrentClaims, CurrentRecruiter, SessionDep
 from callup.api.permissions import ensure_can_manage, ensure_manager
@@ -147,9 +148,12 @@ async def accept_invitation(
         raise HTTPException(status.HTTP_409_CONFLICT, "invitation has expired")
     if await repositories.get_recruiter(session, claims.sub) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "already in an org")
-    recruiter = await repositories.accept_invitation(
-        session, invitation, claims.sub, claims.email.lower(), body.display_name
-    )
+    try:
+        recruiter = await repositories.accept_invitation(
+            session, invitation, claims.sub, claims.email.lower(), body.display_name
+        )
+    except IntegrityError:
+        raise HTTPException(status.HTTP_409_CONFLICT, "already in an org") from None
     org = await session.get(Org, recruiter.org_id)
     return RecruiterOut(
         id=recruiter.id,

@@ -107,12 +107,8 @@ async def list_pending_invitations(session: AsyncSession, org_id: uuid.UUID) -> 
     return list(result.scalars().all())
 
 
-async def get_invitation_by_token_hash(
-    session: AsyncSession, token_hash: str
-) -> Invitation | None:
-    result = await session.execute(
-        select(Invitation).where(Invitation.token_hash == token_hash)
-    )
+async def get_invitation_by_token_hash(session: AsyncSession, token_hash: str) -> Invitation | None:
+    result = await session.execute(select(Invitation).where(Invitation.token_hash == token_hash))
     return result.scalar_one_or_none()
 
 
@@ -147,7 +143,11 @@ async def accept_invitation(
     )
     session.add(recruiter)
     # Flush recruiter first so the FK on invitation.accepted_by is satisfied.
-    await session.flush()
+    try:
+        await session.flush()
+    except IntegrityError:
+        await session.rollback()
+        raise
     invitation.status = InvitationStatus.ACCEPTED.value
     invitation.accepted_at = datetime.now(tz=UTC)
     invitation.accepted_by = recruiter_id
@@ -193,9 +193,7 @@ async def transfer_ownership(
 
 async def delete_org(session: AsyncSession, org: Org) -> None:
     """FK-safe cascade: null the circular owner FK, then delete invites, members, org."""
-    await session.execute(
-        update(Org).where(Org.id == org.id).values(owner_recruiter_id=None)
-    )
+    await session.execute(update(Org).where(Org.id == org.id).values(owner_recruiter_id=None))
     await session.execute(delete(Invitation).where(Invitation.org_id == org.id))
     await session.execute(delete(Recruiter).where(Recruiter.org_id == org.id))
     await session.execute(delete(Org).where(Org.id == org.id))
