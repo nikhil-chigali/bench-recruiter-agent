@@ -39,3 +39,22 @@ implementation plan before code. Deferred schema pieces (pgvector embeddings, Di
 ingestion fields, fitment scores, normalized contacts, apply-session state machine,
 separate outreach record) land as migrations when their slice arrives — see
 [`database-schema-v1.md`](./database-schema-v1.md).
+
+## Follow-ups (tech debt, not slice-blocking)
+
+Carried out of completed slices; fold into a later slice when convenient.
+
+- **Integration test transaction-rollback fixture.** DB integration tests (e.g.
+  `provision_recruiter`) currently create rows in the live Supabase DB and clean up in
+  a `finally` block — a failed assertion mid-test can orphan rows (it did once, leaving
+  a circular-FK'd org+recruiter that had to be deleted by hand). Add a shared
+  session-fixture that runs each integration test inside a transaction and rolls back,
+  so nothing ever persists. (From slice 1.)
+- **Frontend 401 handling.** When the `api` client gets a 401, sign out / redirect to
+  `/login` (global `ApiError` handling) — the spec's intended behavior. (Slice 1.)
+- **Repository unit-of-work.** Move the `commit()` out of `provision_recruiter` to the
+  request boundary once a route performs multiple writes. (Slice 1.)
+- **Generate `packages/shared-types`** from the backend OpenAPI schema instead of
+  hand-declaring response types (e.g. `Me`) on the frontend. (Slice 1.)
+- **Harden the conftest `.env` mini-parser** (quoted values / inline comments) if the
+  backend `.env` ever needs them. (Slice 1.)
