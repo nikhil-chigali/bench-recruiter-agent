@@ -122,6 +122,8 @@ async def revoke_invitation(
     invitation = await session.get(Invitation, invitation_id)
     if invitation is None or invitation.org_id != org_id:
         return None
+    if invitation.status != InvitationStatus.PENDING.value:
+        return None
     invitation.status = InvitationStatus.REVOKED.value
     await session.commit()
     await session.refresh(invitation)

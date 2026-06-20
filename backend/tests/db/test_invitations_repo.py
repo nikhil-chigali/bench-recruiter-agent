@@ -52,6 +52,7 @@ async def test_create_and_accept_invitation_creates_member():
             inv = await repositories.get_invitation_by_token_hash(s, "hash-a")
             assert inv.status == InvitationStatus.ACCEPTED.value
             assert inv.accepted_by == invitee_id
+            assert inv.accepted_at is not None
     finally:
         # _cleanup deletes invitations (including accepted_by refs) before recruiters,
         # so the invitee recruiter is safely removed as part of the org teardown.
