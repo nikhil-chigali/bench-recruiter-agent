@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     # Auth. The Supabase JWT audience claim and the project's JWKS endpoint
     # ({supabase_url}/auth/v1/.well-known/jwks.json) are used to verify bearer tokens.
     supabase_jwt_aud: str = "authenticated"
+    # CORS: the SPA origin allowed to call this API (dev Vite server by default).
+    frontend_origin: str = "http://localhost:5173"
 
     # Matching.
     match_freshness_days: int = 30
