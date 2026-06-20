@@ -6,12 +6,14 @@ combined with vector distance ORDER BY) is implemented here in Phase 3.
 """
 
 import uuid
+from datetime import UTC, datetime
 
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from callup.db.enums import RecruiterRole
-from callup.db.models import Org, Recruiter
+from callup.db.enums import InvitationStatus, RecruiterRole
+from callup.db.models import Invitation, Org, Recruiter
 
 
 async def get_recruiter(session: AsyncSession, recruiter_id: uuid.UUID) -> Recruiter | None:
@@ -54,6 +56,99 @@ async def create_owned_org(
         return existing
 
     org.owner_recruiter_id = recruiter.id
+    await session.commit()
+    await session.refresh(recruiter)
+    return recruiter
+
+
+async def create_invitation(
+    session: AsyncSession,
+    org_id: uuid.UUID,
+    email: str,
+    role: str,
+    invited_by: uuid.UUID,
+    token_hash: str,
+    expires_at: datetime,
+) -> Invitation:
+    """Create a pending invite, revoking any existing pending invite for the same email."""
+    await session.execute(
+        update(Invitation)
+        .where(
+            Invitation.org_id == org_id,
+            Invitation.email == email,
+            Invitation.status == InvitationStatus.PENDING.value,
+        )
+        .values(status=InvitationStatus.REVOKED.value)
+    )
+    invitation = Invitation(
+        org_id=org_id,
+        email=email,
+        role=role,
+        invited_by=invited_by,
+        token_hash=token_hash,
+        status=InvitationStatus.PENDING.value,
+        expires_at=expires_at,
+    )
+    session.add(invitation)
+    await session.commit()
+    await session.refresh(invitation)
+    return invitation
+
+
+async def list_pending_invitations(session: AsyncSession, org_id: uuid.UUID) -> list[Invitation]:
+    result = await session.execute(
+        select(Invitation)
+        .where(
+            Invitation.org_id == org_id,
+            Invitation.status == InvitationStatus.PENDING.value,
+        )
+        .order_by(Invitation.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def get_invitation_by_token_hash(
+    session: AsyncSession, token_hash: str
+) -> Invitation | None:
+    result = await session.execute(
+        select(Invitation).where(Invitation.token_hash == token_hash)
+    )
+    return result.scalar_one_or_none()
+
+
+async def revoke_invitation(
+    session: AsyncSession, invitation_id: uuid.UUID, org_id: uuid.UUID
+) -> Invitation | None:
+    invitation = await session.get(Invitation, invitation_id)
+    if invitation is None or invitation.org_id != org_id:
+        return None
+    invitation.status = InvitationStatus.REVOKED.value
+    await session.commit()
+    await session.refresh(invitation)
+    return invitation
+
+
+async def accept_invitation(
+    session: AsyncSession,
+    invitation: Invitation,
+    recruiter_id: uuid.UUID,
+    email: str,
+    display_name: str,
+) -> Recruiter:
+    """Create the member row for an accepted invite and mark the invite accepted."""
+    recruiter = Recruiter(
+        id=recruiter_id,
+        org_id=invitation.org_id,
+        role=invitation.role,
+        name=display_name,
+        email=email,
+    )
+    session.add(recruiter)
+    # Flush recruiter first so the FK on invitation.accepted_by is satisfied.
+    await session.flush()
+    invitation.status = InvitationStatus.ACCEPTED.value
+    invitation.accepted_at = datetime.now(tz=UTC)
+    invitation.accepted_by = recruiter_id
     await session.commit()
     await session.refresh(recruiter)
     return recruiter
