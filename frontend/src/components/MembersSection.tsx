@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
+import { initialsOf, ROLE_LABEL, ROLE_BADGE } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -47,17 +46,24 @@ export default function MembersSection() {
 
   if (!recruiter) return null
   const actorRole = recruiter.role
+  // Admins can only grant the recruiter role; owners can grant recruiter or admin.
+  const roleOptions = actorRole === 'admin' ? ['recruiter'] : ['recruiter', 'admin']
+
+  function setRole(id: string, role: string, current: string) {
+    setPending((p) => {
+      const next = { ...p }
+      if (role === current) delete next[id]
+      else next[id] = role
+      return next
+    })
+  }
 
   async function confirmRole(id: string) {
     const role = pending[id]
     if (!role) return
     try {
       await api.patch(`/members/${id}`, { role })
-      setPending((p) => {
-        const next = { ...p }
-        delete next[id]
-        return next
-      })
+      cancelRole(id)
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update role')
@@ -73,7 +79,7 @@ export default function MembersSection() {
   }
 
   async function confirmRemove() {
-    if (!removeTarget) return
+    if (!removeTarget || confirmText !== 'remove') return
     try {
       await api.delete(`/members/${removeTarget.id}`)
       setRemoveTarget(null)
@@ -85,46 +91,60 @@ export default function MembersSection() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Members</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {error && <p className="text-destructive text-sm">{error}</p>}
-        {members.map((m) => (
-          <div key={m.id} className="flex items-center justify-between gap-4 border-b py-2">
-            <div className="text-sm">
-              <div className="font-medium">{m.name}</div>
-              <div className="text-muted-foreground">{m.email}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              {canManage(actorRole, m.role) ? (
-                <>
-                  <Select
-                    value={pending[m.id] ?? m.role}
-                    onValueChange={(v) => setPending((p) => ({ ...p, [m.id]: v }))}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">admin</SelectItem>
-                      <SelectItem value="recruiter">recruiter</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {pending[m.id] && pending[m.id] !== m.role ? (
-                    <>
-                      <Button size="sm" onClick={() => void confirmRole(m.id)}>
-                        Confirm
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => cancelRole(m.id)}>
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
+    <div className="overflow-hidden rounded-[14px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)] [animation:cu-fade_0.3s_ease]">
+      <div className="flex items-center justify-between border-b border-[#f0f0f1] px-5 py-4">
+        <div className="text-[15px] font-semibold">Members</div>
+        <div className="font-mono text-[12.5px] text-[#a1a1aa]">{members.length} people</div>
+      </div>
+      <div className="flex border-b border-[#f0f0f1] bg-[#fafafa] px-5 py-[9px] font-mono text-[10.5px] tracking-[0.07em] text-[#a1a1aa] uppercase">
+        <div className="flex-1">Member</div>
+        <div className="w-[230px]">Role</div>
+      </div>
+
+      {error && <p className="px-5 py-3 text-[13px] text-destructive">{error}</p>}
+
+      {members.map((m) => {
+        const manage = canManage(actorRole, m.role)
+        const selected = pending[m.id] ?? m.role
+        const hasPending = !!pending[m.id] && pending[m.id] !== m.role
+        const badge = ROLE_BADGE[m.role] ?? ROLE_BADGE.recruiter
+        return (
+          <div key={m.id} className="border-b border-[#f4f4f5] last:border-b-0">
+            <div className="flex items-center px-5 py-[13px]">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex size-9 flex-none items-center justify-center rounded-full border border-[#e9e9ec] bg-[#f4f4f5] text-xs font-semibold text-[#52525b]">
+                  {initialsOf(m.name)}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-[7px] text-[13.5px] font-semibold">
+                    {m.name}
+                    {m.id === recruiter.id && (
+                      <span className="rounded-[5px] bg-[#f4f4f5] px-1.5 py-px font-mono text-[10px] text-muted-foreground">
+                        YOU
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-[#a1a1aa]">{m.email}</div>
+                </div>
+              </div>
+              <div className="flex w-[230px] items-center gap-2">
+                {manage ? (
+                  <>
+                    <Select value={selected} onValueChange={(v) => setRole(m.id, v, m.role)}>
+                      <SelectTrigger className="h-[34px] min-w-[118px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roleOptions.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {ROLE_LABEL[r]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
-                      size="sm"
+                      className="h-[34px] px-3 text-destructive hover:border-[#fca5a5] hover:bg-[#fef2f2]"
                       onClick={() => {
                         setConfirmText('')
                         setRemoveTarget(m)
@@ -132,15 +152,44 @@ export default function MembersSection() {
                     >
                       Remove
                     </Button>
-                  )}
-                </>
-              ) : (
-                <span className="text-muted-foreground text-sm">{m.role}</span>
-              )}
+                  </>
+                ) : (
+                  <span
+                    className="rounded-full px-2.5 py-[3px] text-[11.5px] font-medium"
+                    style={{ backgroundColor: badge.bg, color: badge.fg }}
+                  >
+                    {ROLE_LABEL[m.role] ?? m.role}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {hasPending && (
+              <div className="mx-5 mb-[13px] flex items-center justify-between rounded-[10px] border border-[#ddd8fb] bg-[#f7f7ff] px-3.5 py-[11px] [animation:cu-fade_0.2s_ease]">
+                <div className="text-[13px] text-[#3f3f46]">
+                  Change <span className="font-semibold">{m.name}</span> to{' '}
+                  <span className="font-semibold text-brand-foreground">
+                    {ROLE_LABEL[pending[m.id]] ?? pending[m.id]}
+                  </span>
+                  ?
+                </div>
+                <div className="flex gap-2">
+                  <Button className="h-[30px] px-3.5 text-[12.5px]" onClick={() => void confirmRole(m.id)}>
+                    Confirm
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-[30px] px-3.5 text-[12.5px]"
+                    onClick={() => cancelRole(m.id)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
-      </CardContent>
+        )
+      })}
 
       <Dialog
         open={removeTarget !== null}
@@ -151,16 +200,31 @@ export default function MembersSection() {
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove member</DialogTitle>
-            <DialogDescription>
-              This permanently removes {removeTarget?.name} ({removeTarget?.email}) and deletes
-              their login account. This cannot be undone. Type <span className="font-mono">remove</span>{' '}
-              to confirm.
-            </DialogDescription>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader className="flex-row items-center gap-3">
+            <div className="flex size-[38px] flex-none items-center justify-center rounded-[10px] border border-[#fca5a5] bg-[#fef2f2] text-lg text-destructive">
+              !
+            </div>
+            <div>
+              <DialogTitle className="text-base">Remove {removeTarget?.name}?</DialogTitle>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                They'll lose access immediately.
+              </p>
+            </div>
           </DialogHeader>
-          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+          <p className="text-[13px] text-[#52525b]">
+            Type{' '}
+            <span className="rounded-[5px] bg-[#f4f4f5] px-1.5 py-px font-mono font-medium text-foreground">
+              remove
+            </span>{' '}
+            to confirm.
+          </p>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="remove"
+            className="font-mono"
+          />
           <DialogFooter>
             <Button
               variant="outline"
@@ -171,17 +235,17 @@ export default function MembersSection() {
             >
               Cancel
             </Button>
-            <Button
-              variant="outline"
-              className="border-destructive text-destructive"
+            <button
+              type="button"
               disabled={confirmText !== 'remove'}
               onClick={() => void confirmRemove()}
+              className="h-10 rounded-[9px] bg-destructive px-4 text-sm font-medium text-white transition-colors hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:bg-[#fca5a5]"
             >
-              Remove
-            </Button>
+              Remove member
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   )
 }
