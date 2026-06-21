@@ -4,7 +4,7 @@ from httpx import ASGITransport, AsyncClient
 
 from callup.api.deps import get_current_recruiter
 from callup.db import repositories
-from callup.db.models import Recruiter
+from callup.db.models import Org, Recruiter
 from callup.db.session import get_session
 from callup.main import app
 
@@ -133,5 +133,36 @@ async def test_remove_member_calls_service(monkeypatch):
             resp = await c.delete(f"/members/{TARGET}")
         assert resp.status_code == 204
         assert called["id"] == TARGET
+    finally:
+        app.dependency_overrides.clear()
+
+
+class _OrgSession:
+    """Session stub that returns a stub Org for any session.get() call."""
+
+    def __init__(self, org: Org) -> None:
+        self._org = org
+
+    async def get(self, model, pk):
+        return self._org
+
+
+async def test_delete_org_calls_membership_service(monkeypatch):
+    called = {}
+    stub_org = Org(id=ORG, name="Acme")
+
+    async def fake_delete_org(session, org):
+        called["org_id"] = org.id
+
+    from callup.services import membership
+
+    monkeypatch.setattr(membership, "delete_org", fake_delete_org)
+    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _OrgSession(stub_org)
+    try:
+        async with await _client() as c:
+            resp = await c.delete("/orgs/current")
+        assert resp.status_code == 204
+        assert called["org_id"] == ORG
     finally:
         app.dependency_overrides.clear()
