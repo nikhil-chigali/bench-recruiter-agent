@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '@/lib/api'
+import { useProfile } from '@/lib/profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +22,8 @@ export default function InvitesSection() {
   const [lastLink, setLastLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const { recruiter } = useProfile()
+  const isOwner = recruiter?.role === 'owner'
 
   const load = useCallback(() => {
     api
@@ -76,7 +79,7 @@ export default function InvitesSection() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="recruiter">recruiter</SelectItem>
-              <SelectItem value="admin">admin</SelectItem>
+              {isOwner && <SelectItem value="admin">admin</SelectItem>}
             </SelectContent>
           </Select>
           <Button type="submit" disabled={busy}>

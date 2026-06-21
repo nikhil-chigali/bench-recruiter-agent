@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,7 @@ type Member = { id: string; name: string; email: string; role: string }
 
 export default function DangerZone() {
   const { recruiter, refresh } = useProfile()
+  const { signOut } = useAuth()
   const [members, setMembers] = useState<Member[]>([])
   const [transferTo, setTransferTo] = useState('')
   const [confirmName, setConfirmName] = useState('')
@@ -46,7 +48,7 @@ export default function DangerZone() {
     setError(null)
     try {
       await api.delete('/orgs/current')
-      await refresh()
+      await signOut()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed')
     }
