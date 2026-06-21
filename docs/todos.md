@@ -76,6 +76,16 @@ Carried out of completed slices; fold into a later slice when convenient.
   concurrent-accept guard are enforced at the DB, not just in application logic. Today
   `create_invitation` revokes-then-inserts (a benign TOCTOU under concurrency) and the
   accept race is handled by catching `IntegrityError` → 409. (Slice 3.)
-- **Slice-3 manual browser smoke test.** The two-account end-to-end flow (owner invites →
-  copy link → second account accepts → roster → role change → remove → transfer → delete)
-  was deferred to the maintainer; verify in-browser. (Slice 3.)
+- **CORS-on-500 surfacing.** Unhandled exceptions return a 500 without CORS headers, so the
+  browser sees a misleading "Failed to fetch" instead of the real status — this masked the
+  remove-member FK bug during slice-3 testing. Apply CORS headers to error responses (an
+  exception handler / middleware) so 500s reach the SPA as real errors. The FK fix removed
+  *this* slice's 500, but the masking remains for the next one. (Slice 3 hardening.)
+- **Orphaned auth-account reconciliation.** Remove-member and delete-org delete the
+  Supabase auth user best-effort: the DB rows are deleted first (transactional) and a failed
+  Auth Admin delete is logged, not retried — so a network/5xx blip can leave an orphaned
+  `auth.users` row. No reconciliation/cleanup job exists. (Slice 3 hardening.)
+- **Unique token hashes in the member-repo integration test.**
+  `tests/db/test_members_repo.py` seeds invitations with hardcoded token-hash strings
+  (`"th-accept"`, `"th-sent"`); the `invitation.token_hash` unique constraint means parallel
+  integration runs against the shared DB would collide. Use `uuid4().hex`. (Slice 3 hardening.)

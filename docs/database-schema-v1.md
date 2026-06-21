@@ -154,9 +154,16 @@ erDiagram
   middleware, never a column-shape migration. Distinct from `recruiter_id`, which is
   candidate ownership within an org.
 - **Org & roles:** `org_id` is a FK to `ORG`. `recruiter.role` (`owner | admin |
-  recruiter`) and `org.owner_recruiter_id` model who administers the org. Role-based
-  permissions (add/remove recruiters, assign candidates, org-level stats) and the admin UI
-  are future scope — only the entities and the role column exist now.
+  recruiter`) and `org.owner_recruiter_id` model who administers the org. Role-gated team
+  management — invitations, role changes, member removal, ownership transfer, and org
+  deletion — shipped in slice 3 (the `INVITATION` table was added by migration
+  `e3546d70251d`; it is not drawn in this v1 ERD). Still future scope: assigning candidates
+  across recruiters and org-level stats.
+- **Recruiter ↔ auth user lifecycle:** `recruiter.id` *is* the Supabase auth user id, so
+  the two are deleted together. Removing a member (and deleting an org, which cascades to all
+  its members) also deletes the corresponding `auth.users` row via the Supabase Auth Admin
+  API — best-effort, after the DB delete commits (see [`todos.md`](./todos.md) for the
+  orphan-reconciliation follow-up).
 - **One recruiter per candidate** for now; a candidate shared across recruiters is a
   future change (would become a join table).
 - **Job-posting contact** = the *hiring-side* recruiter the BSR emails outreach to — not

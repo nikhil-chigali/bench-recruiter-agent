@@ -24,9 +24,10 @@ backend/
 │   ├── config.py          # callup.config.settings — single source of truth
 │   ├── secrets.py         # the only module that resolves creds/tokens
 │   ├── api/               # deps.py, schemas.py + routes/ (thin HTTP layer only)
+│   ├── auth/              # jwt.py (JWKS token verification) + admin.py (Supabase Auth Admin client)
 │   ├── db/                # base.py, enums.py, models/ (package), session.py, repositories.py
 │   ├── llm/               # client.py, embeddings.py, prompts/
-│   ├── services/          # fetch, candidates, match, generate, apply, outreach
+│   ├── services/          # membership, fetch, candidates, match, generate, apply, outreach
 │   └── workers/           # queue.py, scheduler.py, tasks/
 ├── alembic/
 └── tests/
