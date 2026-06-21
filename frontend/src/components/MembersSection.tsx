@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -10,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type Member = { id: string; name: string; email: string; role: string }
 
@@ -23,6 +32,9 @@ export default function MembersSection() {
   const { recruiter } = useProfile()
   const [members, setMembers] = useState<Member[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState<Record<string, string>>({})
+  const [removeTarget, setRemoveTarget] = useState<Member | null>(null)
+  const [confirmText, setConfirmText] = useState('')
 
   const load = useCallback(() => {
     api
@@ -36,18 +48,36 @@ export default function MembersSection() {
   if (!recruiter) return null
   const actorRole = recruiter.role
 
-  async function changeRole(id: string, role: string) {
+  async function confirmRole(id: string) {
+    const role = pending[id]
+    if (!role) return
     try {
       await api.patch(`/members/${id}`, { role })
+      setPending((p) => {
+        const next = { ...p }
+        delete next[id]
+        return next
+      })
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update role')
     }
   }
 
-  async function remove(id: string) {
+  function cancelRole(id: string) {
+    setPending((p) => {
+      const next = { ...p }
+      delete next[id]
+      return next
+    })
+  }
+
+  async function confirmRemove() {
+    if (!removeTarget) return
     try {
-      await api.delete(`/members/${id}`)
+      await api.delete(`/members/${removeTarget.id}`)
+      setRemoveTarget(null)
+      setConfirmText('')
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to remove member')
@@ -70,7 +100,10 @@ export default function MembersSection() {
             <div className="flex items-center gap-2">
               {canManage(actorRole, m.role) ? (
                 <>
-                  <Select value={m.role} onValueChange={(v) => void changeRole(m.id, v)}>
+                  <Select
+                    value={pending[m.id] ?? m.role}
+                    onValueChange={(v) => setPending((p) => ({ ...p, [m.id]: v }))}
+                  >
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -79,9 +112,27 @@ export default function MembersSection() {
                       <SelectItem value="recruiter">recruiter</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" onClick={() => void remove(m.id)}>
-                    Remove
-                  </Button>
+                  {pending[m.id] && pending[m.id] !== m.role ? (
+                    <>
+                      <Button size="sm" onClick={() => void confirmRole(m.id)}>
+                        Confirm
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => cancelRole(m.id)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmText('')
+                        setRemoveTarget(m)
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </>
               ) : (
                 <span className="text-muted-foreground text-sm">{m.role}</span>
@@ -90,6 +141,47 @@ export default function MembersSection() {
           </div>
         ))}
       </CardContent>
+
+      <Dialog
+        open={removeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRemoveTarget(null)
+            setConfirmText('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove member</DialogTitle>
+            <DialogDescription>
+              This permanently removes {removeTarget?.name} ({removeTarget?.email}) and deletes
+              their login account. This cannot be undone. Type <span className="font-mono">remove</span>{' '}
+              to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRemoveTarget(null)
+                setConfirmText('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+              disabled={confirmText !== 'remove'}
+              onClick={() => void confirmRemove()}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
