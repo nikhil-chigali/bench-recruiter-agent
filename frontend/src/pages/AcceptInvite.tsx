@@ -128,7 +128,14 @@ export default function AcceptInvite() {
           </div>
           <button
             type="button"
-            onClick={() => void signOut()}
+            onClick={async () => {
+              // Leave the invite URL *before* signing out. Otherwise we're still on
+              // /accept-invite?token=… when the session clears, RequireAuth bounces to
+              // /login carrying this foreign token as `from`, and the next sign-in lands
+              // right back on this same wrong-account screen — an inescapable loop.
+              navigate('/login', { replace: true })
+              await signOut()
+            }}
             className="text-left text-[13px] font-medium text-brand"
           >
             Sign out &amp; switch account →
