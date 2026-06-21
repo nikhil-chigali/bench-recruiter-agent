@@ -15,7 +15,6 @@ from jwt.exceptions import PyJWKClientConnectionError
 
 from callup.config import settings
 
-
 # Tolerance for clock skew between Supabase (which stamps `iat`/`exp`) and this server.
 # Without it, a token whose `iat` is even a second ahead of our clock is rejected as
 # "not yet valid" for the first second or two after sign-in — which races the SPA's first
