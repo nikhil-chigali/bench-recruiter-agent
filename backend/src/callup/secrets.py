@@ -17,6 +17,13 @@ def database_url() -> str:
     return settings.database_url
 
 
+def supabase_service_key() -> str:
+    key = settings.supabase_service_key
+    if not key:
+        raise RuntimeError("SUPABASE_SERVICE_KEY is not configured")
+    return key
+
+
 # Resolved when their features land:
 # - gmail_oauth_token(recruiter_id): the recruiter's connected Gmail token (outreach send).
 # - dice_credentials(...): candidate Dice credentials are entered live per apply session
