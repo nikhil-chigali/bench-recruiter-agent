@@ -6,6 +6,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import BrandMark from '@/components/BrandMark'
 
+// Supabase returns this when signing up with an email that already has an account
+// (only when email confirmations are off; otherwise signUp resolves silently).
+function isAlreadyRegistered(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as { message?: string; code?: string }
+  if (e.code === 'user_already_exists') return true
+  return typeof e.message === 'string' && /already registered|already exists/i.test(e.message)
+}
+
 export default function Login() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
@@ -26,8 +35,25 @@ export default function Login() {
     const email = String(form.get('email'))
     const password = String(form.get('password'))
     try {
-      if (mode === 'signin') await signIn(email, password)
-      else await signUp(email, password)
+      if (mode === 'signin') {
+        await signIn(email, password)
+      } else {
+        try {
+          await signUp(email, password)
+        } catch (err) {
+          // The auth account can already exist without a finished profile — e.g. someone
+          // signed up, then abandoned onboarding (leaving a recruiter-less auth user).
+          // Resume that account by signing in so the email isn't permanently stuck.
+          if (!isAlreadyRegistered(err)) throw err
+          try {
+            await signIn(email, password)
+          } catch {
+            setMode('signin')
+            setError('This email is already registered. Please sign in.')
+            return
+          }
+        }
+      }
       navigate(redirectTo, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed')
