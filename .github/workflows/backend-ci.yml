@@ -1,0 +1,39 @@
+name: Backend CI
+
+# Runs on every PR and on pushes to the long-lived branches. Intentionally NOT
+# path-filtered: these are required status checks (branch protection on master), and a
+# path-skipped workflow never reports its check, which would deadlock a PR on "waiting
+# for status." See README/deployment notes for the path-filter upgrade if wanted.
+on:
+  pull_request:
+  push:
+    branches: [develop, master]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # uv provisions Python per backend/.python-version (3.12) during sync.
+      - name: Install dependencies (incl. dev group)
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (black)
+        run: uv run black --check .
+
+      - name: Tests (fast suite — no network/DB)
+        run: uv run pytest -m "not integration"

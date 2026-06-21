@@ -1,0 +1,48 @@
+name: Frontend CI
+
+# Runs on every PR and on pushes to the long-lived branches. Intentionally NOT
+# path-filtered: these are required status checks (branch protection on master), and a
+# path-skipped workflow never reports its check, which would deadlock a PR on "waiting
+# for status." See README/deployment notes for the path-filter upgrade if wanted.
+on:
+  pull_request:
+  push:
+    branches: [develop, master]
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm must be installed before setup-node so its pnpm cache can resolve.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      - name: Type-check (tsc)
+        run: pnpm exec tsc -b
+
+      # The production build also runs tsc -b; building here is the final gate and
+      # mirrors what the Dockerfile does. VITE_* aren't needed in CI (they only get
+      # inlined with real values at the Railway build).
+      - name: Build
+        run: pnpm build
