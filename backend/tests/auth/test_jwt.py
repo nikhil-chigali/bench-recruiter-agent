@@ -82,3 +82,26 @@ def test_verify_token_wrong_issuer(keypair):
     token = _make_token(private_key, iss="https://evil.example.com/auth/v1")
     with pytest.raises(AuthError):
         verify_token(token)
+
+
+def test_verify_token_future_iat_within_leeway(keypair):
+    """A token issued a few seconds ahead of our clock still verifies.
+
+    Supabase stamps `iat` with its own clock; small skew shouldn't reject a fresh token
+    (which previously raced the SPA's first /me and bounced the user to login).
+    """
+    private_key, _ = keypair
+    now = dt.datetime.now(tz=dt.UTC)
+    sub = uuid.uuid4()
+    token = _make_token(private_key, sub=str(sub), iat=now + dt.timedelta(seconds=5))
+    claims = verify_token(token)
+    assert claims.sub == sub
+
+
+def test_verify_token_future_iat_beyond_leeway(keypair):
+    """Skew tolerance is bounded — a token issued far in the future is still rejected."""
+    private_key, _ = keypair
+    now = dt.datetime.now(tz=dt.UTC)
+    token = _make_token(private_key, iat=now + dt.timedelta(minutes=5))
+    with pytest.raises(AuthError):
+        verify_token(token)
