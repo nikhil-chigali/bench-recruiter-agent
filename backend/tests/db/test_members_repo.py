@@ -112,3 +112,53 @@ async def test_delete_org_cascades():
     finally:
         if not deleted:
             await _cleanup(org_id)
+
+
+async def test_remove_member_deletes_referencing_invitations():
+    owner_id = uuid.uuid4()
+    member_id = uuid.uuid4()
+    org_id = None
+    try:
+        async with SessionFactory() as s:
+            owner = await repositories.create_owned_org(
+                s, owner_id, f"{owner_id}@example.com", "Acme", "Owner"
+            )
+            org_id = owner.org_id
+            await repositories.create_invitation(
+                s,
+                org_id,
+                "m@example.com",
+                "recruiter",
+                owner_id,
+                "th-accept",
+                datetime.now(tz=UTC) + timedelta(days=7),
+            )
+        async with SessionFactory() as s:
+            inv = await repositories.get_invitation_by_token_hash(s, "th-accept")
+            await repositories.accept_invitation(s, inv, member_id, "m@example.com", "Member")
+        async with SessionFactory() as s:
+            # member also sent an invite (covers the invited_by FK reference)
+            await repositories.create_invitation(
+                s,
+                org_id,
+                "x@example.com",
+                "recruiter",
+                member_id,
+                "th-sent",
+                datetime.now(tz=UTC) + timedelta(days=7),
+            )
+        async with SessionFactory() as s:
+            member = await repositories.get_member(s, member_id, org_id)
+            await repositories.remove_member(s, member)  # must NOT raise a FK error
+        async with SessionFactory() as s:
+            assert await repositories.get_member(s, member_id, org_id) is None
+            assert await repositories.get_invitation_by_token_hash(s, "th-accept") is None
+            assert await repositories.get_invitation_by_token_hash(s, "th-sent") is None
+    finally:
+        if org_id is not None:
+            async with SessionFactory() as s:
+                await s.execute(delete(Invitation).where(Invitation.org_id == org_id))
+                await s.execute(update(Org).where(Org.id == org_id).values(owner_recruiter_id=None))
+                await s.execute(delete(Recruiter).where(Recruiter.org_id == org_id))
+                await s.execute(delete(Org).where(Org.id == org_id))
+                await s.commit()

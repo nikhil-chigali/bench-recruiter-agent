@@ -8,7 +8,7 @@ combined with vector distance ORDER BY) is implemented here in Phase 3.
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -178,6 +178,16 @@ async def update_member_role(session: AsyncSession, member: Recruiter, role: str
 
 
 async def remove_member(session: AsyncSession, member: Recruiter) -> None:
+    """Delete a member, first clearing invitation rows that reference them.
+
+    invitation.invited_by is NOT NULL so it cannot be nulled; deleting the member's
+    associated invitation records is the clean fix (mirrors delete_org's ordering).
+    """
+    await session.execute(
+        delete(Invitation).where(
+            or_(Invitation.invited_by == member.id, Invitation.accepted_by == member.id)
+        )
+    )
     await session.delete(member)
     await session.commit()
 
