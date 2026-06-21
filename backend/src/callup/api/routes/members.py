@@ -8,6 +8,7 @@ from callup.api.permissions import ensure_can_manage
 from callup.api.schemas import MemberOut
 from callup.db import repositories
 from callup.db.enums import RecruiterRole
+from callup.services import membership
 
 router = APIRouter(tags=["members"])
 
@@ -49,4 +50,4 @@ async def remove_member(member_id: uuid.UUID, actor: CurrentRecruiter, session: 
     if member is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "member not found")
     ensure_can_manage(actor, member.role)
-    await repositories.remove_member(session, member)
+    await membership.remove_member(session, member)

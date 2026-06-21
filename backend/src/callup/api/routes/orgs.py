@@ -8,6 +8,7 @@ from callup.api.permissions import ensure_owner
 from callup.api.schemas import RecruiterOut
 from callup.db import repositories
 from callup.db.models import Org
+from callup.services import membership
 
 router = APIRouter(tags=["orgs"])
 
@@ -68,4 +69,4 @@ async def transfer_ownership(
 async def delete_current_org(actor: CurrentRecruiter, session: SessionDep) -> None:
     ensure_owner(actor)
     org = await session.get(Org, actor.org_id)
-    await repositories.delete_org(session, org)
+    await membership.delete_org(session, org)

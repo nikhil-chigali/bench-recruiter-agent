@@ -111,3 +111,27 @@ async def test_delete_org_requires_owner():
         assert resp.status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_remove_member_calls_service(monkeypatch):
+    called = {}
+
+    async def fake_get_member(session, rid, org_id):
+        return _target("recruiter")
+
+    async def fake_remove(session, member):
+        called["id"] = member.id
+
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    from callup.services import membership
+
+    monkeypatch.setattr(membership, "remove_member", fake_remove)
+    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.delete(f"/members/{TARGET}")
+        assert resp.status_code == 204
+        assert called["id"] == TARGET
+    finally:
+        app.dependency_overrides.clear()
