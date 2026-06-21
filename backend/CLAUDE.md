@@ -48,6 +48,17 @@ backend/
 - If a third-party SDK reads `os.environ` directly, add the mirror in `config.py` — don't sprinkle `setdefault` elsewhere.
 - Fail fast on startup when required env vars are missing.
 
+## Deployment
+
+- Deploys to Railway from [`backend/Dockerfile`](./Dockerfile) (uv + Python 3.12). The
+  container runs `uvicorn callup.main:app --host 0.0.0.0 --port $PORT`; the `callup.main:run`
+  console entry point is **dev-only** (binds localhost, reload on).
+- Migrations run as the service's pre-deploy command (`uv run alembic upgrade head`), not in
+  the image, so a failed migration never starts a half-deployed server.
+- Settings come from Railway service variables (read by `config.py`); never committed. Set
+  `FRONTEND_ORIGIN` to the deployed SPA URL or CORS blocks it. Full setup and the env-var
+  inventory live in [`docs/deployment.md`](../docs/deployment.md).
+
 ## Database migrations
 
 - Alembic is the source of truth for schema changes. Do not change tables manually in the Supabase dashboard.

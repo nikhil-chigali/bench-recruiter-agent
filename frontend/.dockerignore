@@ -1,0 +1,7 @@
+# Keep the build context small and never ship local secrets or build output.
+node_modules/
+dist/
+.env
+.env.*
+*.local
+.git/

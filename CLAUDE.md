@@ -6,13 +6,12 @@ Callup automates bench-sales recruiting: fetch and normalize job postings, match
 
 ```text
 callup/
-├── backend/      # FastAPI + background workers (Python, uv)
-├── frontend/     # React SPA (Vite + TS, pnpm)
-├── packages/     # shared-types (TS mirror of API contracts)
-└── docker-compose.yml
+├── backend/      # FastAPI + background workers (Python, uv) — Dockerfile for Railway
+├── frontend/     # React SPA (Vite + TS, pnpm) — Dockerfile + Caddyfile for Railway
+└── docs/         # scope, plans, schema, deployment guide
 ```
 
-Deployment: Railway hosts compute (API, workers, frontend); Supabase hosts Postgres + pgvector and Storage. Treat both as given — do not introduce alternative infra without a decision recorded in the commit.
+Deployment: Railway hosts compute (API, workers, frontend); Supabase hosts Postgres + pgvector and Storage. Treat both as given — do not introduce alternative infra without a decision recorded in the commit. Each service deploys from its own `Dockerfile`; the full Railway setup (two services, env-var inventory, deploy order, secrets) is in [`docs/deployment.md`](./docs/deployment.md).
 
 ## Dependency policy
 
