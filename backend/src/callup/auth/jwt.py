@@ -15,6 +15,12 @@ from jwt.exceptions import PyJWKClientConnectionError
 
 from callup.config import settings
 
+# Tolerance for clock skew between Supabase (which stamps `iat`/`exp`) and this server.
+# Without it, a token whose `iat` is even a second ahead of our clock is rejected as
+# "not yet valid" for the first second or two after sign-in — which races the SPA's first
+# /me call and bounces the user back to login. Applies to iat, nbf, and exp.
+_CLOCK_SKEW_LEEWAY_SECONDS = 30
+
 
 class AuthError(Exception):
     """Bearer token is missing or fails verification (-> HTTP 401)."""
@@ -62,6 +68,7 @@ def verify_token(token: str) -> TokenClaims:
             algorithms=["ES256", "RS256"],
             audience=settings.supabase_jwt_aud,
             issuer=f"{settings.supabase_url.rstrip('/')}/auth/v1",
+            leeway=_CLOCK_SKEW_LEEWAY_SECONDS,
         )
     except jwt.InvalidTokenError as exc:
         raise AuthError(str(exc)) from exc

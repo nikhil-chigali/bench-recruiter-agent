@@ -1,0 +1,10 @@
+# Serve the Vite SPA. {$PORT} is injected by Railway (fallback 80 for local runs).
+# Binding to a bare :port keeps Caddy in plain-HTTP mode (no auto-HTTPS) — Railway's
+# edge handles TLS. try_files sends unknown paths to index.html so React Router
+# owns client-side routes like /accept-invite.
+:{$PORT:80} {
+	root * /srv
+	encode gzip
+	try_files {path} /index.html
+	file_server
+}

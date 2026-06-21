@@ -68,6 +68,17 @@ Keep imports consistent with the `@/*` alias (e.g. `@/lib/api`, `@/components/ui
 - All env reads go through a single `src/lib/env.ts` module that validates required vars at boot. Never read `import.meta.env.X` directly in components.
 - Env vars are prefixed `VITE_` (Vite convention). Anything not prefixed is not exposed to the client.
 
+## Deployment
+
+- Deploys to Railway from [`frontend/Dockerfile`](./Dockerfile): a pnpm build stage, then
+  Caddy ([`Caddyfile`](./Caddyfile)) serving `dist/` with an SPA fallback to `index.html`
+  (so client routes like `/accept-invite` resolve).
+- `VITE_*` vars are **build-time** — Vite inlines them into the bundle, so they arrive as
+  Docker build args and a value change needs a **rebuild**, not a restart. They are also
+  **public** (shipped in the bundle): never put a secret in a `VITE_*` var.
+- `VITE_API_BASE_URL` must be the backend's **public** Railway URL (the browser can't reach
+  Railway private networking). Full setup is in [`docs/deployment.md`](../docs/deployment.md).
+
 ## Backend integration
 
 - Talks to the Python backend over JSON. Base URL comes from `VITE_API_BASE_URL`.

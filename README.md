@@ -16,7 +16,8 @@ callup/
 ```
 
 Deployment targets Railway for compute and Supabase for Postgres (with pgvector) and
-Storage.
+Storage. The backend and frontend deploy as two separate Railway services, each from its
+own `Dockerfile` — see [`docs/deployment.md`](./docs/deployment.md) for the full setup.
 
 ## Getting started
 
