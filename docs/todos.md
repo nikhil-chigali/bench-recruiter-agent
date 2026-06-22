@@ -85,6 +85,14 @@ Carried out of completed slices; fold into a later slice when convenient.
   Supabase auth user best-effort: the DB rows are deleted first (transactional) and a failed
   Auth Admin delete is logged, not retried — so a network/5xx blip can leave an orphaned
   `auth.users` row. No reconciliation/cleanup job exists. (Slice 3 hardening.)
+- **Recruiter-less auth users from abandoned signup.** `signUp` creates the `auth.users`
+  row immediately (email confirmations off), but a `recruiter` row only lands on onboarding
+  (`POST /orgs`) or invite accept — so abandoning onboarding leaves an auth user with no
+  profile. This is now *recoverable*, not a dead-end: `Login.onSubmit` falls back to sign-in
+  when signup reports the email already exists, letting the user resume. We deliberately do
+  **not** sweep these accounts (they're harmless — `get_current_recruiter` 403s everything
+  but `/me`, `POST /orgs`, and invite-accept). Add a cleanup sweep only if they accumulate.
+  (Slice 3 hardening.)
 - **Unique token hashes in the member-repo integration test.**
   `tests/db/test_members_repo.py` seeds invitations with hardcoded token-hash strings
   (`"th-accept"`, `"th-sent"`); the `invitation.token_hash` unique constraint means parallel

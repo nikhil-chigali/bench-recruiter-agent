@@ -2,9 +2,9 @@ import uuid
 
 from httpx import ASGITransport, AsyncClient
 
-from callup.api.deps import get_current_recruiter
+from callup.api.deps import get_current_user
 from callup.db import repositories
-from callup.db.models import Org, Recruiter
+from callup.db.models import Org, User
 from callup.db.session import get_session
 from callup.main import app
 
@@ -13,12 +13,12 @@ ACTOR = uuid.uuid4()
 TARGET = uuid.uuid4()
 
 
-def _actor(role: str) -> Recruiter:
-    return Recruiter(id=ACTOR, org_id=ORG, role=role, name="Actor", email="actor@example.com")
+def _actor(role: str) -> User:
+    return User(id=ACTOR, org_id=ORG, role=role, name="Actor", email="actor@example.com")
 
 
-def _target(role: str) -> Recruiter:
-    return Recruiter(id=TARGET, org_id=ORG, role=role, name="Target", email="t@example.com")
+def _target(role: str) -> User:
+    return User(id=TARGET, org_id=ORG, role=role, name="Target", email="t@example.com")
 
 
 class _Session:
@@ -36,7 +36,7 @@ async def test_admin_cannot_change_admin_role(monkeypatch):
         return _target("admin")
 
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("admin")
+    app.dependency_overrides[get_current_user] = lambda: _actor("admin")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -51,7 +51,7 @@ async def test_cannot_remove_owner(monkeypatch):
         return _target("owner")
 
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -66,7 +66,7 @@ async def test_patch_to_owner_rejected(monkeypatch):
         return _target("recruiter")
 
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -77,11 +77,11 @@ async def test_patch_to_owner_rejected(monkeypatch):
 
 
 async def test_transfer_requires_owner():
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("admin")
+    app.dependency_overrides[get_current_user] = lambda: _actor("admin")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
-            resp = await c.post("/orgs/transfer-ownership", json={"recruiter_id": str(TARGET)})
+            resp = await c.post("/orgs/transfer-ownership", json={"user_id": str(TARGET)})
         assert resp.status_code == 403
     finally:
         app.dependency_overrides.clear()
@@ -92,7 +92,7 @@ async def test_recruiter_cannot_remove_member(monkeypatch):
         return _target("recruiter")
 
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -103,7 +103,7 @@ async def test_recruiter_cannot_remove_member(monkeypatch):
 
 
 async def test_delete_org_requires_owner():
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -126,7 +126,7 @@ async def test_remove_member_calls_service(monkeypatch):
     from callup.services import membership
 
     monkeypatch.setattr(membership, "remove_member", fake_remove)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
         async with await _client() as c:
@@ -157,7 +157,7 @@ async def test_delete_org_calls_membership_service(monkeypatch):
     from callup.services import membership
 
     monkeypatch.setattr(membership, "delete_org", fake_delete_org)
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _OrgSession(stub_org)
     try:
         async with await _client() as c:

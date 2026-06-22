@@ -16,7 +16,7 @@ type Invitation = { id: string; email: string; role: string; status: string; exp
 type Created = Invitation & { accept_url: string }
 
 export default function InvitesSection() {
-  const { recruiter } = useProfile()
+  const { user } = useProfile()
   const [invites, setInvites] = useState<Invitation[]>([])
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('recruiter')
@@ -25,7 +25,7 @@ export default function InvitesSection() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const isOwner = recruiter?.role === 'owner'
+  const isOwner = user?.role === 'owner'
 
   const load = useCallback(() => {
     api

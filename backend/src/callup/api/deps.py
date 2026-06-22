@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from callup.auth.jwt import AuthError, JWKSUnavailable, TokenClaims, verify_token
 from callup.db import repositories
-from callup.db.models import Recruiter
+from callup.db.models import User
 from callup.db.session import get_session
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -34,16 +34,16 @@ def get_current_claims(request: Request) -> TokenClaims:
 CurrentClaims = Annotated[TokenClaims, Depends(get_current_claims)]
 
 
-async def get_current_recruiter(claims: CurrentClaims, session: SessionDep) -> Recruiter:
-    """Resolve the onboarded recruiter for the authenticated user.
+async def get_current_user(claims: CurrentClaims, session: SessionDep) -> User:
+    """Resolve the onboarded user for the authenticated request.
 
-    For business routes that require an existing recruiter. Raises 403 if the user has
-    authenticated but not yet onboarded (no recruiter row). Does not provision.
+    For business routes that require an existing user. Raises 403 if the request has
+    authenticated but not yet onboarded (no user row). Does not provision.
     """
-    recruiter = await repositories.get_recruiter(session, claims.sub)
-    if recruiter is None:
+    user = await repositories.get_user(session, claims.sub)
+    if user is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not onboarded")
-    return recruiter
+    return user
 
 
-CurrentRecruiter = Annotated[Recruiter, Depends(get_current_recruiter)]
+CurrentUser = Annotated[User, Depends(get_current_user)]

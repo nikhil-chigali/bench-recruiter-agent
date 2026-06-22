@@ -10,17 +10,17 @@ type Tab = 'members' | 'invitations' | 'settings'
 
 export default function Dashboard() {
   const { signOut } = useAuth()
-  const { recruiter } = useProfile()
+  const { user } = useProfile()
   const [tab, setTab] = useState<Tab>('members')
-  if (!recruiter) return null
+  if (!user) return null
 
-  const isManager = recruiter.role === 'owner' || recruiter.role === 'admin'
-  const isOwner = recruiter.role === 'owner'
+  const isManager = user.role === 'owner' || user.role === 'admin'
+  const isOwner = user.role === 'owner'
   // Keep the active tab valid for the viewer's role.
   const activeTab: Tab =
     (tab === 'invitations' && !isManager) || (tab === 'settings' && !isOwner) ? 'members' : tab
 
-  const badge = ROLE_BADGE[recruiter.role] ?? ROLE_BADGE.recruiter
+  const badge = ROLE_BADGE[user.role] ?? ROLE_BADGE.recruiter
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -28,7 +28,7 @@ export default function Dashboard() {
       <aside className="sticky top-0 flex h-svh w-[236px] flex-none flex-col border-r border-border bg-sidebar px-3.5 py-[18px]">
         <div className="flex items-center gap-[9px] px-2 pt-1 pb-[18px]">
           <span className="size-[9px] rounded-full bg-brand" />
-          <span className="text-[15px] font-semibold tracking-[-0.01em]">{recruiter.org_name}</span>
+          <span className="text-[15px] font-semibold tracking-[-0.01em]">{user.org_name}</span>
         </div>
         <nav className="flex flex-col gap-0.5">
           <span className="flex items-center gap-2.5 rounded-lg bg-[#f4f4f5] px-2.5 py-2 text-[13.5px] font-medium">
@@ -52,12 +52,12 @@ export default function Dashboard() {
         </nav>
         <div className="mt-auto flex items-center gap-2.5 border-t border-[#f0f0f1] pt-3">
           <div className="flex size-[34px] items-center justify-center rounded-full border border-border bg-[#f4f4f5] text-xs font-semibold text-[#52525b]">
-            {initialsOf(recruiter.name)}
+            {initialsOf(user.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold">{recruiter.name}</div>
+            <div className="truncate text-[13px] font-semibold">{user.name}</div>
             <div className="text-[11.5px] font-medium" style={{ color: badge.fg }}>
-              {ROLE_LABEL[recruiter.role] ?? recruiter.role}
+              {ROLE_LABEL[user.role] ?? user.role}
             </div>
           </div>
           <button

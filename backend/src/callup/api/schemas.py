@@ -4,7 +4,7 @@ import uuid
 from pydantic import BaseModel
 
 
-class RecruiterOut(BaseModel):
+class UserOut(BaseModel):
     id: uuid.UUID
     email: str
     name: str

@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { useAuth } from '@/lib/auth'
 
-export type Recruiter = {
+export type User = {
   id: string
   email: string
   name: string
@@ -21,13 +21,13 @@ export type Recruiter = {
 
 type MeResponse = {
   onboarded: boolean
-  recruiter: Recruiter | null
+  user: User | null
 }
 
 type ProfileState = {
   loading: boolean
   onboarded: boolean
-  recruiter: Recruiter | null
+  user: User | null
   error: string | null
 }
 
@@ -38,7 +38,7 @@ type ProfileContextValue = ProfileState & {
 const RESET_STATE: ProfileState = {
   loading: false,
   onboarded: false,
-  recruiter: null,
+  user: null,
   error: null,
 }
 
@@ -49,7 +49,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ProfileState>({
     loading: true,
     onboarded: false,
-    recruiter: null,
+    user: null,
     error: null,
   })
 
@@ -57,7 +57,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
       const me = await api.get<MeResponse>('/me')
-      setState({ loading: false, onboarded: me.onboarded, recruiter: me.recruiter, error: null })
+      setState({ loading: false, onboarded: me.onboarded, user: me.user, error: null })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         await signOut()

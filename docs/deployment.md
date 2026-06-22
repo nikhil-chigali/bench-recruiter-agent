@@ -44,7 +44,7 @@ dashboard checklist.
 | `ANTHROPIC_API_KEY` | 🔒 | **Required at boot** even though LLM features aren't wired yet — the field has no default, so the app won't start without it. |
 | `SUPABASE_URL` | public | e.g. `https://<ref>.supabase.co`. Needed for JWT verification (JWKS) and the Auth Admin client. |
 | `SUPABASE_SERVICE_KEY` | 🔒🔒 | Service-role key. Powers member/org auth-account deletion. **Backend only — never expose to the frontend.** |
-| `FRONTEND_ORIGIN` | public | The deployed frontend URL, for CORS. Without it, the browser blocks every API call. |
+| `FRONTEND_ORIGIN` | public | The deployed frontend URL, for CORS. **No trailing slash** — CORS does an exact string match against the browser's `Origin` header (which never carries a trailing slash), so a value like `…railway.app/` rejects *every* request (preflight 400, no `access-control-allow-origin` on the response). Without it set at all, the browser blocks every API call. |
 | `ENVIRONMENT` | — | `production`. |
 
 ---
@@ -59,7 +59,7 @@ dashboard checklist.
 
 | Variable | Notes |
 |---|---|
-| `VITE_API_BASE_URL` | Backend's **public** Railway domain, e.g. `https://callup-api.up.railway.app`. |
+| `VITE_API_BASE_URL` | Backend's **public** Railway domain, e.g. `https://callup-api.up.railway.app`. **No trailing slash** — the API client joins it as `` `${base}${path}` `` where every path already starts with `/`, so a trailing slash yields `//me` and the request 404s. |
 | `VITE_SUPABASE_URL` | Same Supabase URL as the backend. |
 | `VITE_SUPABASE_ANON_KEY` | The publishable/anon key — public by design. **Never** put a secret in a `VITE_*` var; it ships in the bundle. |
 
@@ -109,6 +109,9 @@ Connect dialog:
 
 - Bind `0.0.0.0` + `$PORT` — never `127.0.0.1` or a hardcoded port (the image already does).
 - `VITE_*` changes need a **rebuild** to take effect.
+- **No trailing slash** on `FRONTEND_ORIGIN` or `VITE_API_BASE_URL`. A trailing `/` breaks
+  CORS on the backend (exact-match against the browser `Origin`) and produces `//path` 404s
+  on the frontend — and the CORS failure hides the 404 until you fix both.
 - Never put `SUPABASE_SERVICE_KEY` (or any secret) in a `VITE_*` var.
 - The SPA must use the backend's **public** URL, not `*.railway.internal`.
 - Set `FRONTEND_ORIGIN` or CORS blocks the SPA.

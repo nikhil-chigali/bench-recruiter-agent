@@ -7,13 +7,13 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy.exc import IntegrityError
 
-from callup.api.deps import CurrentClaims, CurrentRecruiter, SessionDep
+from callup.api.deps import CurrentClaims, CurrentUser, SessionDep
 from callup.api.permissions import ensure_can_manage, ensure_manager
 from callup.api.schemas import (
     InvitationCreatedOut,
     InvitationOut,
     InvitationPreviewOut,
-    RecruiterOut,
+    UserOut,
 )
 from callup.config import settings
 from callup.db import repositories
@@ -67,7 +67,7 @@ class AcceptIn(BaseModel):
 
 @router.post("/invitations", response_model=InvitationCreatedOut, status_code=201)
 async def create_invitation(
-    body: InviteCreateIn, actor: CurrentRecruiter, session: SessionDep
+    body: InviteCreateIn, actor: CurrentUser, session: SessionDep
 ) -> InvitationCreatedOut:
     ensure_can_manage(actor, body.role)
     raw = secrets.token_urlsafe(32)
@@ -92,7 +92,7 @@ async def create_invitation(
 
 
 @router.get("/invitations", response_model=list[InvitationOut])
-async def list_invitations(actor: CurrentRecruiter, session: SessionDep) -> list[InvitationOut]:
+async def list_invitations(actor: CurrentUser, session: SessionDep) -> list[InvitationOut]:
     ensure_manager(actor)
     invitations = await repositories.list_pending_invitations(session, actor.org_id)
     return [
@@ -103,7 +103,7 @@ async def list_invitations(actor: CurrentRecruiter, session: SessionDep) -> list
 
 @router.delete("/invitations/{invitation_id}", status_code=204)
 async def revoke_invitation(
-    invitation_id: uuid.UUID, actor: CurrentRecruiter, session: SessionDep
+    invitation_id: uuid.UUID, actor: CurrentUser, session: SessionDep
 ) -> None:
     ensure_manager(actor)
     revoked = await repositories.revoke_invitation(session, invitation_id, actor.org_id)
@@ -133,10 +133,8 @@ async def lookup_invitation(
     )
 
 
-@router.post("/invitations/accept", response_model=RecruiterOut, status_code=201)
-async def accept_invitation(
-    body: AcceptIn, claims: CurrentClaims, session: SessionDep
-) -> RecruiterOut:
+@router.post("/invitations/accept", response_model=UserOut, status_code=201)
+async def accept_invitation(body: AcceptIn, claims: CurrentClaims, session: SessionDep) -> UserOut:
     invitation = await repositories.get_invitation_by_token_hash(session, _hash_token(body.token))
     if invitation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "invitation not found")
@@ -146,20 +144,20 @@ async def accept_invitation(
         raise HTTPException(status.HTTP_409_CONFLICT, "invitation is no longer valid")
     if invitation.expires_at < datetime.now(tz=UTC):
         raise HTTPException(status.HTTP_409_CONFLICT, "invitation has expired")
-    if await repositories.get_recruiter(session, claims.sub) is not None:
+    if await repositories.get_user(session, claims.sub) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "already in an org")
     try:
-        recruiter = await repositories.accept_invitation(
+        user = await repositories.accept_invitation(
             session, invitation, claims.sub, claims.email.lower(), body.display_name
         )
     except IntegrityError:
         raise HTTPException(status.HTTP_409_CONFLICT, "already in an org") from None
-    org = await session.get(Org, recruiter.org_id)
-    return RecruiterOut(
-        id=recruiter.id,
-        email=recruiter.email,
-        name=recruiter.name,
-        role=recruiter.role,
-        org_id=recruiter.org_id,
+    org = await session.get(Org, user.org_id)
+    return UserOut(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        role=user.role,
+        org_id=user.org_id,
         org_name=org.name if org else "",
     )
