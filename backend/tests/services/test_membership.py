@@ -1,6 +1,6 @@
 import uuid
 
-from callup.db.models import Org, Recruiter
+from callup.db.models import Org, User
 from callup.services import membership
 
 OID = uuid.uuid4()
@@ -21,15 +21,15 @@ async def test_remove_member_deletes_db_then_auth(monkeypatch):
     monkeypatch.setattr(membership.repositories, "remove_member", fake_remove)
     monkeypatch.setattr(membership.auth_admin, "delete_auth_users", fake_del)
 
-    member = Recruiter(id=M1, org_id=OID, role="recruiter", name="M", email="m@e.com")
+    member = User(id=M1, org_id=OID, role="recruiter", name="M", email="m@e.com")
     await membership.remove_member(object(), member)
     assert order == [("db", M1), ("auth", [M1])]
 
 
 async def test_delete_org_captures_ids_then_cascades(monkeypatch):
     members = [
-        Recruiter(id=M1, org_id=OID, role="owner", name="O", email="o@e.com"),
-        Recruiter(id=M2, org_id=OID, role="recruiter", name="R", email="r@e.com"),
+        User(id=M1, org_id=OID, role="owner", name="O", email="o@e.com"),
+        User(id=M2, org_id=OID, role="recruiter", name="R", email="r@e.com"),
     ]
     order: list = []
 

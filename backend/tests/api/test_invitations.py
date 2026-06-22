@@ -4,10 +4,10 @@ from datetime import UTC, datetime, timedelta
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import IntegrityError
 
-from callup.api.deps import get_current_claims, get_current_recruiter
+from callup.api.deps import get_current_claims, get_current_user
 from callup.auth.jwt import TokenClaims
 from callup.db import repositories
-from callup.db.models import Invitation, Org, Recruiter
+from callup.db.models import Invitation, Org, User
 from callup.db.session import get_session
 from callup.main import app
 
@@ -19,11 +19,11 @@ def _claims() -> TokenClaims:
     return TokenClaims(sub=SUB, email="actor@example.com")
 
 
-def _actor(role: str) -> Recruiter:
-    return Recruiter(id=SUB, org_id=ORG, role=role, name="Actor", email="actor@example.com")
+def _actor(role: str) -> User:
+    return User(id=SUB, org_id=ORG, role=role, name="Actor", email="actor@example.com")
 
 
-class _SessionNoRecruiter:
+class _SessionNoUser:
     async def get(self, model, pk):
         return None
 
@@ -34,7 +34,7 @@ async def _client():
 
 
 async def test_invite_rejects_owner_role():
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("owner")
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     try:
         async with await _client() as c:
             resp = await c.post("/invitations", json={"email": "a@x.com", "role": "owner"})
@@ -44,7 +44,7 @@ async def test_invite_rejects_owner_role():
 
 
 async def test_admin_cannot_invite_admin():
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("admin")
+    app.dependency_overrides[get_current_user] = lambda: _actor("admin")
     try:
         async with await _client() as c:
             resp = await c.post("/invitations", json={"email": "a@x.com", "role": "admin"})
@@ -54,7 +54,7 @@ async def test_admin_cannot_invite_admin():
 
 
 async def test_recruiter_cannot_list_invitations():
-    app.dependency_overrides[get_current_recruiter] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     try:
         async with await _client() as c:
             resp = await c.get("/invitations")
@@ -80,7 +80,7 @@ async def test_accept_email_mismatch(monkeypatch):
 
     monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
     app.dependency_overrides[get_current_claims] = _claims
-    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    app.dependency_overrides[get_session] = lambda: _SessionNoUser()
     try:
         async with await _client() as c:
             resp = await c.post(
@@ -108,7 +108,7 @@ async def test_accept_non_pending_conflicts(monkeypatch):
 
     monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
     app.dependency_overrides[get_current_claims] = _claims
-    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    app.dependency_overrides[get_session] = lambda: _SessionNoUser()
     try:
         async with await _client() as c:
             resp = await c.post(
@@ -136,7 +136,7 @@ async def test_accept_expired_conflicts(monkeypatch):
 
     monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
     app.dependency_overrides[get_current_claims] = _claims
-    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    app.dependency_overrides[get_session] = lambda: _SessionNoUser()
     try:
         async with await _client() as c:
             resp = await c.post(
@@ -201,7 +201,7 @@ async def test_accept_race_conflicts(monkeypatch):
     monkeypatch.setattr(repositories, "get_invitation_by_token_hash", fake_lookup)
     monkeypatch.setattr(repositories, "accept_invitation", fake_accept)
     app.dependency_overrides[get_current_claims] = _claims
-    app.dependency_overrides[get_session] = lambda: _SessionNoRecruiter()
+    app.dependency_overrides[get_session] = lambda: _SessionNoUser()
     try:
         async with await _client() as c:
             resp = await c.post(

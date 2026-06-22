@@ -10,12 +10,12 @@ from callup.db.models.candidate import (
 )
 from callup.db.models.invitation import Invitation
 from callup.db.models.job import JobPosting
-from callup.db.models.org import Org, Recruiter
+from callup.db.models.org import Org, User
 
 __all__ = [
     "Base",
     "Org",
-    "Recruiter",
+    "User",
     "Invitation",
     "Candidate",
     "CandidateEducation",

@@ -28,7 +28,7 @@ function canManage(actorRole: string, targetRole: string): boolean {
 }
 
 export default function MembersSection() {
-  const { recruiter } = useProfile()
+  const { user } = useProfile()
   const [members, setMembers] = useState<Member[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<Record<string, string>>({})
@@ -44,8 +44,8 @@ export default function MembersSection() {
 
   useEffect(() => load(), [load])
 
-  if (!recruiter) return null
-  const actorRole = recruiter.role
+  if (!user) return null
+  const actorRole = user.role
   // Admins can only grant the recruiter role; owners can grant recruiter or admin.
   const roleOptions = actorRole === 'admin' ? ['recruiter'] : ['recruiter', 'admin']
 
@@ -118,7 +118,7 @@ export default function MembersSection() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-[7px] text-[13.5px] font-semibold">
                     {m.name}
-                    {m.id === recruiter.id && (
+                    {m.id === user.id && (
                       <span className="rounded-[5px] bg-[#f4f4f5] px-1.5 py-px font-mono text-[10px] text-muted-foreground">
                         YOU
                       </span>

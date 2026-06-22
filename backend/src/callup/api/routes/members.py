@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, field_validator
 
-from callup.api.deps import CurrentRecruiter, SessionDep
+from callup.api.deps import CurrentUser, SessionDep
 from callup.api.permissions import ensure_can_manage
 from callup.api.schemas import MemberOut
 from callup.db import repositories
@@ -27,14 +27,14 @@ class RoleUpdateIn(BaseModel):
 
 
 @router.get("/members", response_model=list[MemberOut])
-async def list_members(actor: CurrentRecruiter, session: SessionDep) -> list[MemberOut]:
+async def list_members(actor: CurrentUser, session: SessionDep) -> list[MemberOut]:
     members = await repositories.list_members(session, actor.org_id)
     return [MemberOut(id=m.id, name=m.name, email=m.email, role=m.role) for m in members]
 
 
 @router.patch("/members/{member_id}", response_model=MemberOut)
 async def update_member_role(
-    member_id: uuid.UUID, body: RoleUpdateIn, actor: CurrentRecruiter, session: SessionDep
+    member_id: uuid.UUID, body: RoleUpdateIn, actor: CurrentUser, session: SessionDep
 ) -> MemberOut:
     member = await repositories.get_member(session, member_id, actor.org_id)
     if member is None:
@@ -45,7 +45,7 @@ async def update_member_role(
 
 
 @router.delete("/members/{member_id}", status_code=204)
-async def remove_member(member_id: uuid.UUID, actor: CurrentRecruiter, session: SessionDep) -> None:
+async def remove_member(member_id: uuid.UUID, actor: CurrentUser, session: SessionDep) -> None:
     member = await repositories.get_member(session, member_id, actor.org_id)
     if member is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "member not found")

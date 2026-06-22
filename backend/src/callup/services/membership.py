@@ -8,10 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from callup.auth import admin as auth_admin
 from callup.db import repositories
-from callup.db.models import Org, Recruiter
+from callup.db.models import Org, User
 
 
-async def remove_member(session: AsyncSession, member: Recruiter) -> None:
+async def remove_member(session: AsyncSession, member: User) -> None:
     await repositories.remove_member(session, member)
     await auth_admin.delete_auth_users([member.id])
 

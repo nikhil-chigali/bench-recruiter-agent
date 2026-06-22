@@ -28,6 +28,7 @@ Newest last.
 |----------|------|------|---------|
 | `161a7bd63439` | `base` | 2026-06-20 | v1 skeleton — creates the 10 base tables |
 | `e3546d70251d` | `161a7bd63439` | 2026-06-20 | Adds the `invitation` table (team invites) |
+| `b1d2e3f40512` | `e3546d70251d` | 2026-06-21 | Renames the `recruiter` table to `users` (+ FK columns) |
 
 ### `161a7bd63439` — initial schema
 
@@ -50,3 +51,13 @@ record.
 Adds `invitation` for slice 3 team invites: `org_id` tenancy FK + index, `email`, `role`,
 unique `token_hash` (sha256 of the link token), `status` (`pending`/`accepted`/`revoked`),
 `invited_by` + nullable `accepted_by` FKs to `recruiter`, `expires_at`/`accepted_at`.
+
+### `b1d2e3f40512` — rename recruiter to users
+
+Renames the entity table `recruiter` → `users` and the FK columns that point at it
+(`org.owner_recruiter_id` → `owner_user_id`, `candidate.recruiter_id` → `user_id`). Also
+realigns the dependent index and constraint names (`ix_users_org_id`,
+`ix_candidate_user_id`, `fk_org_owner_user`, `users_pkey`, `users_email_key`,
+`users_org_id_fkey`, `candidate_user_id_fkey`) so they read as `users` and autogenerate
+sees no drift. Pure renames — data-preserving, no drops. The `recruiter` **role** value
+(owner/admin/recruiter, stored in `users.role`) is intentionally unchanged.

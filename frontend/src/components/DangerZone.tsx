@@ -16,7 +16,7 @@ import {
 type Member = { id: string; name: string; email: string; role: string }
 
 export default function DangerZone() {
-  const { recruiter, refresh } = useProfile()
+  const { user, refresh } = useProfile()
   const { signOut } = useAuth()
   const [members, setMembers] = useState<Member[]>([])
   const [transferTo, setTransferTo] = useState('')
@@ -30,14 +30,14 @@ export default function DangerZone() {
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load members'))
   }, [])
 
-  if (!recruiter) return null
-  const others = members.filter((m) => m.id !== recruiter.id)
-  const canDelete = confirmName === recruiter.org_name
+  if (!user) return null
+  const others = members.filter((m) => m.id !== user.id)
+  const canDelete = confirmName === user.org_name
 
   async function transfer() {
     setError(null)
     try {
-      await api.post('/orgs/transfer-ownership', { recruiter_id: transferTo })
+      await api.post('/orgs/transfer-ownership', { user_id: transferTo })
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transfer failed')
@@ -101,7 +101,7 @@ export default function DangerZone() {
         <div className="text-[13.5px] font-semibold">Delete organization</div>
         <div className="text-[12.5px] text-muted-foreground">
           Type{' '}
-          <span className="font-mono font-medium text-foreground">{recruiter.org_name}</span> to
+          <span className="font-mono font-medium text-foreground">{user.org_name}</span> to
           confirm. This deletes everything.
         </div>
         <div className="flex max-w-[460px] gap-2">

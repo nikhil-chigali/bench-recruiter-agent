@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import delete, select, update
 
 from callup.db import repositories
-from callup.db.models import Invitation, Org, Recruiter
+from callup.db.models import Invitation, Org, User
 from callup.db.session import SessionFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio(loop_scope="module")]
@@ -20,7 +20,7 @@ async def _seed_owner_and_member() -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
         )
         org_id = owner.org_id
         s.add(
-            Recruiter(
+            User(
                 id=member_id,
                 org_id=org_id,
                 role="recruiter",
@@ -35,8 +35,8 @@ async def _seed_owner_and_member() -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
 async def _cleanup(org_id: uuid.UUID) -> None:
     async with SessionFactory() as s:
         await s.execute(delete(Invitation).where(Invitation.org_id == org_id))
-        await s.execute(update(Org).where(Org.id == org_id).values(owner_recruiter_id=None))
-        await s.execute(delete(Recruiter).where(Recruiter.org_id == org_id))
+        await s.execute(update(Org).where(Org.id == org_id).values(owner_user_id=None))
+        await s.execute(delete(User).where(User.org_id == org_id))
         await s.execute(delete(Org).where(Org.id == org_id))
         await s.commit()
 
@@ -75,7 +75,7 @@ async def test_transfer_ownership_swaps_roles():
             await repositories.transfer_ownership(s, org, old, new)
         async with SessionFactory() as s:
             org = await s.get(Org, org_id)
-            assert org.owner_recruiter_id == member_id
+            assert org.owner_user_id == member_id
             assert (await repositories.get_member(s, member_id, org_id)).role == "owner"
             assert (await repositories.get_member(s, owner_id, org_id)).role == "admin"
     finally:
@@ -105,7 +105,7 @@ async def test_delete_org_cascades():
             deleted = True
         async with SessionFactory() as s:
             assert await s.get(Org, org_id) is None
-            remaining = await s.scalar(select(Recruiter).where(Recruiter.org_id == org_id).limit(1))
+            remaining = await s.scalar(select(User).where(User.org_id == org_id).limit(1))
             assert remaining is None
             inv = await s.scalar(select(Invitation).where(Invitation.org_id == org_id).limit(1))
             assert inv is None
@@ -158,7 +158,7 @@ async def test_remove_member_deletes_referencing_invitations():
         if org_id is not None:
             async with SessionFactory() as s:
                 await s.execute(delete(Invitation).where(Invitation.org_id == org_id))
-                await s.execute(update(Org).where(Org.id == org_id).values(owner_recruiter_id=None))
-                await s.execute(delete(Recruiter).where(Recruiter.org_id == org_id))
+                await s.execute(update(Org).where(Org.id == org_id).values(owner_user_id=None))
+                await s.execute(delete(User).where(User.org_id == org_id))
                 await s.execute(delete(Org).where(Org.id == org_id))
                 await s.commit()

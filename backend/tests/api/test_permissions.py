@@ -2,11 +2,11 @@ import pytest
 from fastapi import HTTPException
 
 from callup.api import permissions
-from callup.db.models import Recruiter
+from callup.db.models import User
 
 
-def _r(role: str) -> Recruiter:
-    return Recruiter(role=role, name="x", email="x@example.com")
+def _r(role: str) -> User:
+    return User(role=role, name="x", email="x@example.com")
 
 
 def test_ensure_owner_allows_owner():

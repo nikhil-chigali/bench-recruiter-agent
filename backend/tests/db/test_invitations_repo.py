@@ -6,7 +6,7 @@ from sqlalchemy import delete, update
 
 from callup.db import repositories
 from callup.db.enums import InvitationStatus
-from callup.db.models import Invitation, Org, Recruiter
+from callup.db.models import Invitation, Org, User
 from callup.db.session import SessionFactory
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio(loop_scope="module")]
@@ -24,8 +24,8 @@ async def _make_org_with_owner() -> tuple[uuid.UUID, uuid.UUID]:
 async def _cleanup(org_id: uuid.UUID) -> None:
     async with SessionFactory() as s:
         await s.execute(delete(Invitation).where(Invitation.org_id == org_id))
-        await s.execute(update(Org).where(Org.id == org_id).values(owner_recruiter_id=None))
-        await s.execute(delete(Recruiter).where(Recruiter.org_id == org_id))
+        await s.execute(update(Org).where(Org.id == org_id).values(owner_user_id=None))
+        await s.execute(delete(User).where(User.org_id == org_id))
         await s.execute(delete(Org).where(Org.id == org_id))
         await s.commit()
 
@@ -58,8 +58,8 @@ async def test_create_and_accept_invitation_creates_member():
             assert inv.accepted_by == invitee_id
             assert inv.accepted_at is not None
     finally:
-        # _cleanup deletes invitations (including accepted_by refs) before recruiters,
-        # so the invitee recruiter is safely removed as part of the org teardown.
+        # _cleanup deletes invitations (including accepted_by refs) before users,
+        # so the invitee user is safely removed as part of the org teardown.
         await _cleanup(org_id)
 
 
@@ -100,4 +100,4 @@ async def test_reinvite_revokes_prior_pending():
 
 async def _owner_id(session, org_id: uuid.UUID) -> uuid.UUID:
     org = await session.get(Org, org_id)
-    return org.owner_recruiter_id
+    return org.owner_user_id

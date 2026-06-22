@@ -6,13 +6,15 @@ state machine, and a separate outreach record) is intentionally **deferred** and
 added by later migrations as those phases land.
 
 Status: **locked (v1)** — implemented in Alembic migration `161a7bd63439` and applied to Supabase.
+The entity table was later renamed `recruiter` → `users` by migration `b1d2e3f40512` (the
+`recruiter` *role* value is unchanged); this ERD reflects the current `users` naming.
 
 ## ERD
 
 ```mermaid
 erDiagram
-    ORG ||--o{ RECRUITER : employs
-    RECRUITER ||--o{ CANDIDATE : manages
+    ORG ||--o{ USERS : employs
+    USERS ||--o{ CANDIDATE : manages
     CANDIDATE ||--o{ CANDIDATE_EDUCATION : has
     CANDIDATE ||--o{ CANDIDATE_EXPERIENCE : has
     CANDIDATE ||--o{ CANDIDATE_CERTIFICATION : has
@@ -24,11 +26,11 @@ erDiagram
     ORG {
         uuid id PK
         text name
-        uuid owner_recruiter_id FK "the org owner"
+        uuid owner_user_id FK "the org owner"
         timestamptz created_at
         timestamptz updated_at
     }
-    RECRUITER {
+    USERS {
         uuid id PK "= Supabase auth user id"
         uuid org_id FK
         text role "owner | admin | recruiter"
@@ -40,7 +42,7 @@ erDiagram
     CANDIDATE {
         uuid id PK
         uuid org_id FK
-        uuid recruiter_id FK
+        uuid user_id FK
         text name
         text email
         text phone
@@ -135,7 +137,7 @@ erDiagram
 
 ## Enumerations
 
-- **recruiter.role:** `owner`, `admin`, `recruiter`.
+- **users.role:** `owner`, `admin`, `recruiter`.
 - **candidate.work_authorization / job_posting.work_authorization:**
   `USC` (US citizen), `GC` (green card), `GC_EAD`, `H1B`, `OPT`, `STEM_OPT`, `L2_EAD`,
   `TN`, `OTHER`. On a candidate it states their status; on a posting it states the
@@ -151,15 +153,15 @@ erDiagram
 
 - **Tenancy:** `org_id` on every business table marks the owning organization (the
   data-isolation boundary). MVP is single-org; multi-recruiter is later enabled via RLS +
-  middleware, never a column-shape migration. Distinct from `recruiter_id`, which is
+  middleware, never a column-shape migration. Distinct from `user_id`, which is
   candidate ownership within an org.
-- **Org & roles:** `org_id` is a FK to `ORG`. `recruiter.role` (`owner | admin |
-  recruiter`) and `org.owner_recruiter_id` model who administers the org. Role-gated team
+- **Org & roles:** `org_id` is a FK to `ORG`. `users.role` (`owner | admin |
+  recruiter`) and `org.owner_user_id` model who administers the org. Role-gated team
   management — invitations, role changes, member removal, ownership transfer, and org
   deletion — shipped in slice 3 (the `INVITATION` table was added by migration
   `e3546d70251d`; it is not drawn in this v1 ERD). Still future scope: assigning candidates
   across recruiters and org-level stats.
-- **Recruiter ↔ auth user lifecycle:** `recruiter.id` *is* the Supabase auth user id, so
+- **User ↔ auth-user lifecycle:** `users.id` *is* the Supabase auth user id, so
   the two are deleted together. Removing a member (and deleting an org, which cascades to all
   its members) also deletes the corresponding `auth.users` row via the Supabase Auth Admin
   API — best-effort, after the DB delete commits (see [`todos.md`](./todos.md) for the
