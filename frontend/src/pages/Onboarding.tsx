@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { useProfile } from '@/lib/profile'
+import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +12,7 @@ import BrandMark from '@/components/BrandMark'
 export default function Onboarding() {
   const navigate = useNavigate()
   const { loading, onboarded, refresh } = useProfile()
+  const { signOut } = useAuth()
   const [name, setName] = useState('')
   const [orgName, setOrgName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +51,7 @@ export default function Onboarding() {
   const orgInitial = (orgName.trim() || 'O').charAt(0).toUpperCase()
 
   return (
-    <main className="relative flex min-h-svh items-center justify-center p-10">
+    <main className="relative flex min-h-svh flex-col items-center justify-center p-10">
       <BrandMark className="absolute top-7 left-8" />
       <form
         onSubmit={onSubmit}
@@ -124,6 +126,19 @@ export default function Onboarding() {
           Create workspace
         </Button>
       </form>
+      <p className="mt-4 text-center text-[13px] text-muted-foreground">
+        Not ready to set up an org?{' '}
+        <button
+          type="button"
+          className="font-medium text-brand"
+          onClick={async () => {
+            navigate('/login', { replace: true })
+            await signOut()
+          }}
+        >
+          Sign out
+        </button>
+      </p>
     </main>
   )
 }
