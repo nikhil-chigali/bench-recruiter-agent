@@ -32,6 +32,7 @@ export default function Candidates() {
   const [selected, setSelected] = useState<Candidate | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerError, setDrawerError] = useState<string | null>(null)
+  const [statusUpdating, setStatusUpdating] = useState(false)
   const navigate = useNavigate()
 
   function openCandidate(c: Candidate) {
@@ -43,7 +44,9 @@ export default function Candidates() {
   async function changeStatus(next: string) {
     const current = selected
     if (!current || next === current.status) return
+    if (statusUpdating) return
     setDrawerError(null)
+    setStatusUpdating(true)
     // Optimistic: reflect the new status immediately in the roster and the drawer.
     setCandidates((cs) => cs.map((x) => (x.id === current.id ? { ...x, status: next } : x)))
     setSelected((s) => (s && s.id === current.id ? { ...s, status: next } : s))
@@ -56,6 +59,8 @@ export default function Candidates() {
       setCandidates((cs) => cs.map((x) => (x.id === current.id ? current : x)))
       setSelected((s) => (s && s.id === current.id ? current : s))
       setDrawerError(e instanceof Error ? e.message : 'Could not update status')
+    } finally {
+      setStatusUpdating(false)
     }
   }
 
@@ -329,6 +334,7 @@ export default function Candidates() {
         onStatusChange={changeStatus}
         onOpenProfile={() => selected && navigate(`/candidates/${selected.id}`)}
         error={drawerError}
+        statusUpdating={statusUpdating}
       />
     </AppLayout>
   )

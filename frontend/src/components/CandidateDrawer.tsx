@@ -26,6 +26,7 @@ export default function CandidateDrawer({
   onStatusChange,
   onOpenProfile,
   error,
+  statusUpdating,
 }: {
   candidate: Candidate | null
   open: boolean
@@ -33,6 +34,7 @@ export default function CandidateDrawer({
   onStatusChange: (next: string) => void
   onOpenProfile: () => void
   error?: string | null
+  statusUpdating?: boolean
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -56,7 +58,7 @@ export default function CandidateDrawer({
             <div className="flex flex-col gap-5 px-4 py-5">
               <div className="flex items-center gap-3">
                 <span className="text-[13px] text-muted-foreground">Status</span>
-                <CandidateStatusChanger status={candidate.status} onChange={onStatusChange} />
+                <CandidateStatusChanger status={candidate.status} onChange={onStatusChange} disabled={statusUpdating} />
               </div>
               {error && <p className="text-[12.5px] text-destructive">{error}</p>}
 
