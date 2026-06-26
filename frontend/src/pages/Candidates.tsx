@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
@@ -6,6 +7,7 @@ import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
 import type { CandidateCard as Candidate, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateCard from '@/components/CandidateCard'
+import CandidateDrawer from '@/components/CandidateDrawer'
 
 type Group = { id: string | null; name: string; role: string; candidates: Candidate[] }
 type View = 'list' | 'grid'
@@ -27,6 +29,35 @@ export default function Candidates() {
   const [search, setSearch] = useState('')
   const [recruiter, setRecruiter] = useState<string>('all')
   const [view, setView] = useState<View>(loadView)
+  const [selected, setSelected] = useState<Candidate | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerError, setDrawerError] = useState<string | null>(null)
+  const navigate = useNavigate()
+
+  function openCandidate(c: Candidate) {
+    setSelected(c)
+    setDrawerError(null)
+    setDrawerOpen(true)
+  }
+
+  async function changeStatus(next: string) {
+    const current = selected
+    if (!current || next === current.status) return
+    setDrawerError(null)
+    // Optimistic: reflect the new status immediately in the roster and the drawer.
+    setCandidates((cs) => cs.map((x) => (x.id === current.id ? { ...x, status: next } : x)))
+    setSelected((s) => (s && s.id === current.id ? { ...s, status: next } : s))
+    try {
+      const updated = await api.patch<Candidate>(`/candidates/${current.id}`, { status: next })
+      setCandidates((cs) => cs.map((x) => (x.id === updated.id ? updated : x)))
+      setSelected((s) => (s && s.id === updated.id ? updated : s))
+    } catch (e) {
+      // Roll the one candidate back to its pre-change value and surface the error.
+      setCandidates((cs) => cs.map((x) => (x.id === current.id ? current : x)))
+      setSelected((s) => (s && s.id === current.id ? current : s))
+      setDrawerError(e instanceof Error ? e.message : 'Could not update status')
+    }
+  }
 
   useEffect(() => {
     // Managers also load members so every recruiter shows as a group, even with an empty bench.
@@ -275,13 +306,13 @@ export default function Candidates() {
                         <div className="w-[120px]">Status</div>
                       </div>
                       {g.candidates.map((c) => (
-                        <CandidateCard key={c.id} candidate={c} view="list" />
+                        <CandidateCard key={c.id} candidate={c} view="list" onClick={() => openCandidate(c)} />
                       ))}
                     </div>
                   ) : (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
                       {g.candidates.map((c) => (
-                        <CandidateCard key={c.id} candidate={c} view="grid" />
+                        <CandidateCard key={c.id} candidate={c} view="grid" onClick={() => openCandidate(c)} />
                       ))}
                     </div>
                   )}
@@ -291,6 +322,14 @@ export default function Candidates() {
           </div>
         )}
       </div>
+      <CandidateDrawer
+        candidate={selected}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onStatusChange={changeStatus}
+        onOpenProfile={() => selected && navigate(`/candidates/${selected.id}`)}
+        error={drawerError}
+      />
     </AppLayout>
   )
 }

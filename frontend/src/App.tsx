@@ -7,6 +7,7 @@ import Login from '@/pages/Login'
 import Onboarding from '@/pages/Onboarding'
 import Dashboard from '@/pages/Dashboard'
 import Candidates from '@/pages/Candidates'
+import CandidateProfile from '@/pages/CandidateProfile'
 import AcceptInvite from '@/pages/AcceptInvite'
 
 export default function App() {
@@ -40,6 +41,16 @@ export default function App() {
                 <RequireAuth>
                   <RequireOnboarded>
                     <Candidates />
+                  </RequireOnboarded>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/candidates/:id"
+              element={
+                <RequireAuth>
+                  <RequireOnboarded>
+                    <CandidateProfile />
                   </RequireOnboarded>
                 </RequireAuth>
               }
