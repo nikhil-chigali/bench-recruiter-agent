@@ -58,8 +58,10 @@ Slice 4 is large, so it ships as chunks with their own plans under
   `backend/openapi.json` via `openapi-typescript`, with two-sided drift checks.
 - ✅ **Chunk 3 — quick-view drawer + status change:** RBAC-guarded `PATCH /candidates/:id` and the
   card → drawer → optimistic status change; "Open full profile" → `/candidates/:id`.
-- ▶ **Chunk 4 — full profile view:** `GET /candidates/:id` + read-only profile page. **Plan written,
-  not yet executed.**
+- ✅ **Chunk 4 — full profile view:** RBAC-guarded `GET /candidates/:id` (candidate + experience/
+  education/projects/certifications, scoped via the shared `_ensure_access` helper) and the read-only
+  `/candidates/:id` profile page (breadcrumb, section nav, header reusing the Chunk-3 status changer,
+  composed sections, documents placeholder).
 - ⬜ Chunk 5 — add wizard (create); Chunk 6 — profile edit + reassignment; later chunks per the spec.
 
 ## Follow-ups (tech debt, not slice-blocking)
