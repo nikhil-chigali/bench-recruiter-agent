@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
+import type { InvitationPreview as Preview } from '@callup/shared-types'
 import { ApiError } from '@/lib/http'
 import { useAuth } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
@@ -8,14 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import BrandMark from '@/components/BrandMark'
-
-type Preview = {
-  org_name: string
-  role: string
-  email: string
-  status: string
-  email_matches: boolean
-}
 
 const ROLE_LABEL: Record<string, string> = { owner: 'Owner', admin: 'Admin', recruiter: 'Recruiter' }
 const ROLE_COLOR: Record<string, string> = {

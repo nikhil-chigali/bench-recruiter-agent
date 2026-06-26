@@ -3,11 +3,10 @@ import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
 import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
-import type { CandidateCard as Candidate } from '@callup/shared-types'
+import type { CandidateCard as Candidate, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateCard from '@/components/CandidateCard'
 
-type Member = { id: string; name: string; email: string; role: string }
 type Group = { id: string | null; name: string; role: string; candidates: Candidate[] }
 type View = 'list' | 'grid'
 const VIEW_KEY = 'callup_candidates_view'

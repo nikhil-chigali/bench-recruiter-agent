@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import type { Member } from '@callup/shared-types'
 import { useAuth } from '@/lib/auth'
 import { useProfile } from '@/lib/profile'
 import { ROLE_LABEL } from '@/lib/utils'
@@ -12,8 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-type Member = { id: string; name: string; email: string; role: string }
 
 export default function DangerZone() {
   const { user, refresh } = useProfile()

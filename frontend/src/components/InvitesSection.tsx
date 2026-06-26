@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '@/lib/api'
+import type { Invitation, InvitationCreated as Created } from '@callup/shared-types'
 import { useProfile } from '@/lib/profile'
 import { ROLE_LABEL } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,9 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-type Invitation = { id: string; email: string; role: string; status: string; expires_at: string }
-type Created = Invitation & { accept_url: string }
 
 export default function InvitesSection() {
   const { user } = useProfile()
