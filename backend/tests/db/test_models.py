@@ -28,3 +28,11 @@ def test_invitation_table_registered():
 
 def test_invitation_model_importable():
     assert Invitation.__tablename__ == "invitation"
+
+
+def test_candidate_has_title_and_primary_skills_columns():
+    table = Base.metadata.tables["candidate"]
+    assert "title" in table.columns
+    assert "primary_skills" in table.columns
+    assert table.columns["title"].nullable is True
+    assert table.columns["primary_skills"].nullable is False

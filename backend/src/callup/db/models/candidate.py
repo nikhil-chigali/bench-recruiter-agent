@@ -29,6 +29,8 @@ class Candidate(Base, TenantMixin, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String, nullable=False, default=CandidateStatus.ON_BENCH.value
     )
+    title: Mapped[str | None] = mapped_column(Text)
+    primary_skills: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     education: Mapped[list["CandidateEducation"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
