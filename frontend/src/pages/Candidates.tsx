@@ -31,21 +31,28 @@ export default function Candidates() {
 
   useEffect(() => {
     // Managers also load members so every recruiter shows as a group, even with an empty bench.
+    // `ignore` prevents an earlier in-flight fetch from stomping state if isManager flips before
+    // the first Promise.all resolves (e.g. mount run with isManager=false resolves after the
+    // re-run triggered by isManager flipping true).
+    let ignore = false
     async function run() {
-      setLoading(true)
+      if (!ignore) setLoading(true)
       const membersReq = isManager ? api.get<Member[]>('/members') : Promise.resolve<Member[]>([])
       try {
         const [cs, ms] = await Promise.all([api.get<Candidate[]>('/candidates'), membersReq])
-        setCandidates(cs)
-        setMembers(ms)
-        setError(null)
+        if (!ignore) {
+          setCandidates(cs)
+          setMembers(ms)
+          setError(null)
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load candidates')
+        if (!ignore) setError(e instanceof Error ? e.message : 'Failed to load candidates')
       } finally {
-        setLoading(false)
+        if (!ignore) setLoading(false)
       }
     }
     void run()
+    return () => { ignore = true }
   }, [isManager])
 
   function chooseView(v: View) {
