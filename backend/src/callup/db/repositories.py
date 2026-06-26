@@ -11,9 +11,10 @@ from datetime import UTC, datetime
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from callup.db.enums import InvitationStatus, RecruiterRole
-from callup.db.models import Invitation, Org, User
+from callup.db.models import Candidate, Invitation, Org, User
 
 
 async def get_user(session: AsyncSession, user_id: uuid.UUID) -> User | None:
@@ -206,3 +207,22 @@ async def delete_org(session: AsyncSession, org: Org) -> None:
     await session.execute(delete(User).where(User.org_id == org.id))
     await session.execute(delete(Org).where(Org.id == org.id))
     await session.commit()
+
+
+async def list_candidates(
+    session: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID | None = None
+) -> list[Candidate]:
+    """Candidates in an org, newest first, with experience eager-loaded.
+
+    When ``user_id`` is given, restrict to that assignee (recruiter-scoped view).
+    """
+    stmt = (
+        select(Candidate)
+        .where(Candidate.org_id == org_id)
+        .options(selectinload(Candidate.experience))
+        .order_by(Candidate.created_at.desc())
+    )
+    if user_id is not None:
+        stmt = stmt.where(Candidate.user_id == user_id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
