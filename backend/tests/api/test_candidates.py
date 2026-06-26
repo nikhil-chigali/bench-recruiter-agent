@@ -110,3 +110,127 @@ async def test_card_shape_and_derived_years(monkeypatch):
         assert card["recruiter_name"] == "Actor"
     finally:
         app.dependency_overrides.clear()
+
+
+CAND = uuid.uuid4()
+OTHER = uuid.uuid4()
+
+
+def _candidate(owner_id: uuid.UUID, status: str = "on_bench") -> Candidate:
+    cand = Candidate(
+        id=CAND,
+        org_id=ORG,
+        user_id=owner_id,
+        name="Arjun Mehta",
+        title="Sr. Java Developer",
+        status=status,
+        work_authorization="H1B",
+        location="Dallas, TX",
+        primary_skills=["Java"],
+    )
+    cand.experience = []
+    return cand
+
+
+async def test_recruiter_patches_own_candidate(monkeypatch):
+    called = {}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    async def fake_update_status(session, candidate, new_status):
+        called["status"] = new_status
+        candidate.status = new_status
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"status": "interviewing"})
+        assert resp.status_code == 200
+        assert called["status"] == "interviewing"
+        assert resp.json()["status"] == "interviewing"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_cannot_patch_others_candidate(monkeypatch):
+    called = {"updated": False}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(OTHER)
+
+    async def fake_update_status(session, candidate, new_status):
+        called["updated"] = True
+        return candidate
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"status": "placed"})
+        assert resp.status_code == 403
+        assert called["updated"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_patches_any_candidate(monkeypatch):
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(OTHER)
+
+    async def fake_update_status(session, candidate, new_status):
+        candidate.status = new_status
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return User(id=OTHER, org_id=ORG, role="recruiter", name="Other Rec", email="o@example.com")
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"status": "placed"})
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "placed"
+        assert resp.json()["recruiter_name"] == "Other Rec"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_patch_unknown_candidate_returns_404(monkeypatch):
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return None
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"status": "placed"})
+        assert resp.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_patch_invalid_status_returns_422(monkeypatch):
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"status": "bogus"})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()

@@ -226,3 +226,34 @@ async def list_candidates(
         stmt = stmt.where(Candidate.user_id == user_id)
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+async def get_candidate(
+    session: AsyncSession, candidate_id: uuid.UUID, org_id: uuid.UUID
+) -> Candidate | None:
+    """One candidate scoped to an org, with experience eager-loaded (None if not in the org)."""
+    stmt = (
+        select(Candidate)
+        .where(Candidate.id == candidate_id, Candidate.org_id == org_id)
+        .options(selectinload(Candidate.experience))
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def update_candidate_status(
+    session: AsyncSession, candidate: Candidate, status: str
+) -> Candidate:
+    """Persist a new status; return the candidate reloaded with experience eager-loaded.
+
+    The PKs are captured before commit because the default expire-on-commit would otherwise
+    make the post-commit attribute reads (incl. the experience relationship) a lazy load,
+    which is illegal under async SQLAlchemy.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.status = status
+    await session.commit()
+    refreshed = await get_candidate(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
