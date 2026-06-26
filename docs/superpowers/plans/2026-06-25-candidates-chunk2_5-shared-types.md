@@ -4,7 +4,7 @@
 
 **Goal:** Generate the frontend's backend-request/response types from the backend's OpenAPI schema instead of hand-declaring them, so a backend contract change surfaces as a frontend type error.
 
-**Architecture:** The backend emits its OpenAPI schema to a committed `backend/openapi.json` (a pytest guard fails the fast suite if it drifts from the code). A pnpm workspace adds a `@callup/shared-types` package whose types are generated from that JSON by `openapi-typescript` (committed `openapi.d.ts`), guarded against drift by a frontend CI step. Chunk 2's local `CandidateCard` type is then deleted and re-sourced from the generated schema as the first consumer — proving the whole pipeline end-to-end.
+**Architecture:** The backend emits its OpenAPI schema to a committed `backend/openapi.json` (a pytest guard fails the fast suite if it drifts from the code). A pnpm workspace adds a `@callup/shared-types` package whose types are generated from that JSON by `openapi-typescript` (committed `openapi.d.ts`), guarded against drift by a frontend CI step. Chunk 2's local `CandidateCard` type is then deleted and re-sourced from the generated schema as the first consumer — proving the pipeline end-to-end — after which every other hand-declared backend shape (`User`, the `/me` response, `Member`, and the invitation types) is migrated the same way, leaving no hand-declared backend shapes on the frontend.
 
 **Tech Stack:** Backend — FastAPI (`app.openapi()`), `uv`, pytest. Frontend — pnpm workspaces, `openapi-typescript`, TypeScript (strict, bundler resolution), Vite. CI — GitHub Actions.
 
@@ -39,7 +39,12 @@
 | `.github/workflows/frontend-ci.yml` | add the types drift check step | Modify |
 | `frontend/src/lib/candidates.ts` | delete (its type moves to the package) | Delete (Task 3) |
 | `frontend/src/components/CandidateCard.tsx` | import `CandidateCard` from `@callup/shared-types` | Modify (Task 3) |
-| `frontend/src/pages/Candidates.tsx` | import `CandidateCard` from `@callup/shared-types` | Modify (Task 3) |
+| `frontend/src/pages/Candidates.tsx` | import `CandidateCard` (T3) + `Member` (T4) from `@callup/shared-types` | Modify (Task 3, Task 4) |
+| `frontend/src/components/MembersSection.tsx` | drop local `Member`; import from package | Modify (Task 4) |
+| `frontend/src/components/DangerZone.tsx` | drop local `Member`; import from package | Modify (Task 4) |
+| `frontend/src/components/InvitesSection.tsx` | drop local `Invitation`/`Created`; import from package | Modify (Task 4) |
+| `frontend/src/pages/AcceptInvite.tsx` | drop local `Preview`; import from package | Modify (Task 4) |
+| `frontend/src/lib/profile.tsx` | drop local `User`/`MeResponse`; import + re-export from package | Modify (Task 5) |
 
 ---
 
@@ -449,25 +454,237 @@ git commit -m "Source CandidateCard from generated shared-types (first consumer)
 
 ---
 
+## Task 4: Migrate the membership + invitation shapes to generated types
+
+**Files:**
+- Modify: `frontend/packages/shared-types/index.ts`
+- Modify: `frontend/src/components/MembersSection.tsx`
+- Modify: `frontend/src/components/DangerZone.tsx`
+- Modify: `frontend/src/pages/Candidates.tsx`
+- Modify: `frontend/src/components/InvitesSection.tsx`
+- Modify: `frontend/src/pages/AcceptInvite.tsx`
+
+**Interfaces:**
+- Consumes: `@callup/shared-types` and the generated `components['schemas']` entries `MemberOut`, `InvitationOut`, `InvitationCreatedOut`, `InvitationPreviewOut`.
+- Produces: package aliases `Member`, `Invitation`, `InvitationCreated`, `InvitationPreview`. After this task the three duplicated local `Member` declarations and the invitation/preview locals are gone.
+
+Each backend schema's fields match the local type field-for-field (verified against `backend/src/callup/api/schemas.py`): `MemberOut {id,name,email,role}` = local `Member`; `InvitationOut {id,email,role,status,expires_at}` = local `Invitation` (`datetime` → OpenAPI `string`); `InvitationCreatedOut` = `Invitation & {accept_url}` = local `Created`; `InvitationPreviewOut {org_name,role,email,status,email_matches}` = local `Preview`. `pnpm build` is the proof — a mismatch is a type error.
+
+- [ ] **Step 1: Add the aliases to the package surface**
+
+In `frontend/packages/shared-types/index.ts`, append below the `CandidateCard` alias (added in Task 3):
+```ts
+/** Backend `GET /members` row (generated). */
+export type Member = components['schemas']['MemberOut']
+/** Backend `GET /invitations` row (generated). */
+export type Invitation = components['schemas']['InvitationOut']
+/** Backend `POST /invitations` response — invitation plus its accept URL (generated). */
+export type InvitationCreated = components['schemas']['InvitationCreatedOut']
+/** Backend `GET /invitations/lookup` preview (generated). */
+export type InvitationPreview = components['schemas']['InvitationPreviewOut']
+```
+(`components` is already imported at the top of the file from Task 3.)
+
+- [ ] **Step 2: Migrate `MembersSection.tsx`**
+
+Delete line 22:
+```tsx
+type Member = { id: string; name: string; email: string; role: string }
+```
+and add this import immediately after `import { api } from '@/lib/api'` (line 2):
+```tsx
+import type { Member } from '@callup/shared-types'
+```
+
+- [ ] **Step 3: Migrate `DangerZone.tsx`**
+
+Delete line 16:
+```tsx
+type Member = { id: string; name: string; email: string; role: string }
+```
+and add this import immediately after `import { api } from '@/lib/api'` (line 2):
+```tsx
+import type { Member } from '@callup/shared-types'
+```
+
+- [ ] **Step 4: Migrate `Candidates.tsx`**
+
+Delete the local `Member` line (Chunk 2 declared it; currently line 10):
+```tsx
+type Member = { id: string; name: string; email: string; role: string }
+```
+and extend the existing shared-types import (added in Task 3) to also bring in `Member`. Change:
+```tsx
+import type { CandidateCard as Candidate } from '@callup/shared-types'
+```
+to:
+```tsx
+import type { CandidateCard as Candidate, Member } from '@callup/shared-types'
+```
+
+- [ ] **Step 5: Migrate `InvitesSection.tsx`**
+
+Delete lines 15–16:
+```tsx
+type Invitation = { id: string; email: string; role: string; status: string; expires_at: string }
+type Created = Invitation & { accept_url: string }
+```
+and add this import immediately after `import { api } from '@/lib/api'` (line 2). The local code uses the name `Created`, so alias it:
+```tsx
+import type { Invitation, InvitationCreated as Created } from '@callup/shared-types'
+```
+
+- [ ] **Step 6: Migrate `AcceptInvite.tsx`**
+
+Delete lines 12–18:
+```tsx
+type Preview = {
+  org_name: string
+  role: string
+  email: string
+  status: string
+  email_matches: boolean
+}
+```
+and add this import immediately after `import { api } from '@/lib/api'` (line 3). The local code uses the name `Preview`, so alias it:
+```tsx
+import type { InvitationPreview as Preview } from '@callup/shared-types'
+```
+
+- [ ] **Step 7: Verify build + lint**
+
+From `frontend/`:
+```bash
+pnpm build
+pnpm lint
+```
+Expected: both succeed. Green `tsc -b` proves all five files type-check against the generated schemas.
+
+- [ ] **Step 8: Confirm the local shapes are gone**
+
+From `frontend/`:
+```bash
+git grep -nE "type (Member|Invitation|Created|Preview) =" -- src
+```
+Expected: no output (every migrated local declaration removed; `Group`/`View`/`Tab` etc. are not backend shapes and are untouched — they won't match this pattern).
+
+- [ ] **Step 9: Commit**
+
+From the repo root (explicit adds only):
+```bash
+git add frontend/packages/shared-types/index.ts frontend/src/components/MembersSection.tsx frontend/src/components/DangerZone.tsx frontend/src/pages/Candidates.tsx frontend/src/components/InvitesSection.tsx frontend/src/pages/AcceptInvite.tsx
+git commit -m "Source membership and invitation types from generated shared-types"
+```
+
+---
+
+## Task 5: Migrate the profile `User` / `/me` shapes to generated types
+
+**Files:**
+- Modify: `frontend/packages/shared-types/index.ts`
+- Modify: `frontend/src/lib/profile.tsx`
+
+**Interfaces:**
+- Consumes: `@callup/shared-types` and the generated `components['schemas']` entries `UserOut`, `MeOut`.
+- Produces: package aliases `User`, `Me`. `@/lib/profile` keeps exporting `User` (re-exported from the package) so its consumers — `useProfile().user` flows the type; nothing imports the `User` type by name today, but the export is preserved for stability.
+
+`UserOut {id,email,name,role,org_id,org_name}` = local `User` (`uuid` → OpenAPI `string`); `MeOut {onboarded, user: UserOut | null}` = local `MeResponse`. `MeOut` is defined in `backend/src/callup/api/routes/me.py` but, like every Pydantic model FastAPI serializes, appears in `components.schemas` under its class name `MeOut`.
+
+- [ ] **Step 1: Add the aliases to the package surface**
+
+In `frontend/packages/shared-types/index.ts`, append below the invitation aliases (Task 4):
+```ts
+/** Backend `UserOut` — the authenticated user + org (generated). */
+export type User = components['schemas']['UserOut']
+/** Backend `GET /me` response (generated). */
+export type Me = components['schemas']['MeOut']
+```
+
+- [ ] **Step 2: Replace the local declarations in `profile.tsx`**
+
+In `frontend/src/lib/profile.tsx`, delete the local `User` and `MeResponse` declarations (lines 13–25):
+```tsx
+export type User = {
+  id: string
+  email: string
+  name: string
+  role: string
+  org_id: string
+  org_name: string
+}
+
+type MeResponse = {
+  onboarded: boolean
+  user: User | null
+}
+```
+and in their place put (same location, after the existing imports block that ends at line 11 with `import { useAuth } from '@/lib/auth'`):
+```tsx
+import type { Me, User } from '@callup/shared-types'
+
+// Re-exported so `@/lib/profile` stays the import site for `User` across the app.
+export type { User }
+```
+
+- [ ] **Step 3: Use `Me` for the `/me` fetch**
+
+In `frontend/src/lib/profile.tsx`, change the fetch (currently line 59) from:
+```tsx
+      const me = await api.get<MeResponse>('/me')
+```
+to:
+```tsx
+      const me = await api.get<Me>('/me')
+```
+(The rest of `load()` is unchanged — `me.onboarded` and `me.user` exist on `Me`. `ProfileState.user: User | null` now refers to the generated `User`.)
+
+- [ ] **Step 4: Verify build + lint**
+
+From `frontend/`:
+```bash
+pnpm build
+pnpm lint
+```
+Expected: both succeed.
+
+- [ ] **Step 5: Confirm no hand-declared backend shapes remain on the frontend**
+
+From `frontend/`:
+```bash
+git grep -nE "type (User|MeResponse|Member|Invitation|Created|Preview|CandidateCard) =" -- src
+```
+Expected: no output — every backend shape is now sourced from `@callup/shared-types`. (The package's own `index.ts` is under `packages/`, not `src/`, so the curated aliases there don't match.)
+
+- [ ] **Step 6: Commit**
+
+From the repo root (explicit adds only):
+```bash
+git add frontend/packages/shared-types/index.ts frontend/src/lib/profile.tsx
+git commit -m "Source User and /me types from generated shared-types"
+```
+
+---
+
 ## Done-when
 
 - `backend/openapi.json` is committed; `uv run pytest -m "not integration"` is green including the `test_committed_openapi_is_up_to_date` drift guard; `uv run black --check .` clean.
 - `frontend/` is a pnpm workspace with `@callup/shared-types`; `pnpm gen:types` regenerates `openapi.d.ts` deterministically; `pnpm build` and `pnpm lint` pass.
 - Frontend CI fails if `openapi.d.ts` drifts from `../backend/openapi.json`; backend CI fails if `openapi.json` drifts from the code.
 - `frontend/src/lib/candidates.ts` is deleted; the candidate card type is sourced from the generated schema; `git grep "@/lib/candidates" -- frontend/src` is empty.
+- Every hand-declared backend shape on the frontend is gone: `git grep -nE "type (User|MeResponse|Member|Invitation|Created|Preview|CandidateCard) =" -- frontend/src` is empty; all are sourced from `@callup/shared-types`.
 - The Docker frontend build still installs and builds with the workspace.
-- Three commits (Task 1, Task 2, Task 3).
+- Five commits (Task 1, Task 2, Task 3, Task 4, Task 5).
 
 ## Out of scope (not requested)
 
 - Generating typed request/response helpers or a typed `api` client wrapper over the schema (the `api.get<T>` pattern stays; only the `T` source changes). YAGNI until a consumer needs it.
-- Migrating other hand-declared types (`Me`/`User`, `Member`) to the generated package — those move when their owning chunk is next touched; this chunk only proves the pipeline on `CandidateCard`.
+- Migrating *request body* types (none are hand-declared today — forms post `FormData`/inline objects). They join the package when a typed request body first appears.
 - A pre-commit hook that auto-regenerates either artifact (the CI/pytest drift guards are the enforcement; a hook is optional polish).
 - Splitting backend/frontend into a single top-level monorepo workspace — the frontend workspace is rooted at `frontend/` to match the existing `frontend/pnpm-lock.yaml` and CI layout.
 
 ## Self-review notes (for the planner)
 
-- **Spec coverage:** all four spec bullets are covered — backend emits `openapi.json` (Task 1); pnpm workspace + `packages/shared-types` via `openapi-typescript` + `pnpm gen:types` + CI drift check (Task 2); migrate Chunk 2's local `CandidateCard` as the first consumer (Task 3); deliverable "backend contract changes surface as frontend type errors, no hand-declared backend shapes" is realized and asserted by Step 3.5/3.6.
+- **Spec coverage:** all four spec bullets are covered — backend emits `openapi.json` (Task 1); pnpm workspace + `packages/shared-types` via `openapi-typescript` + `pnpm gen:types` + CI drift check (Task 2); migrate Chunk 2's local `CandidateCard` as the first consumer (Task 3); deliverable "backend contract changes surface as frontend type errors, no hand-declared backend shapes" is realized — Task 3 proves the pipeline on `CandidateCard`, and Tasks 4–5 extend it to *every* remaining hand-declared shape (`Member`, the invitation/preview types, `User`, `/me`), asserted by the `git grep` in Step 5.5.
 - **Drift coverage is two-sided:** backend code → `openapi.json` is guarded by the pytest in CI's fast suite; `openapi.json` → `openapi.d.ts` is guarded by the frontend CI step. A backend schema change that isn't propagated fails one of the two.
 - **Cross-platform:** `.gitattributes eol=lf` + binary read/write make both drift checks byte-stable between Windows (autocrlf) and Linux CI — the specific failure this repo would otherwise hit.
 - **No placeholders:** every code/command step shows the exact content and expected output. The one judgment step (deterministic-generation check, Step 2.7) has a concrete pass/fail.
