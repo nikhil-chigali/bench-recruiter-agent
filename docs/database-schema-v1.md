@@ -53,6 +53,7 @@ erDiagram
         jsonb other_urls
         text work_authorization "see enums"
         text summary
+        text status "see enums"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -142,6 +143,8 @@ erDiagram
   `USC` (US citizen), `GC` (green card), `GC_EAD`, `H1B`, `OPT`, `STEM_OPT`, `L2_EAD`,
   `TN`, `OTHER`. On a candidate it states their status; on a posting it states the
   required/accepted authorization.
+- **candidate.status:** `on_bench`, `interviewing`, `placed` (display: "On bench",
+  "Interviewing", "Placed"). The candidate's bench pipeline stage; defaults to `on_bench`.
 - **job_posting.employment_type:** `CONTRACT_C2C`, `CONTRACT_W2`, `FULL_TIME`.
 - **application.status:** `draft`, `applied`, `emailed`, `closed` (terminal: rejected /
   filled / withdrawn / gone cold).

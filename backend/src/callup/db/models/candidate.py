@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from callup.db.base import Base, TenantMixin, TimestampMixin
+from callup.db.enums import CandidateStatus
 
 
 class Candidate(Base, TenantMixin, TimestampMixin):
@@ -25,6 +26,9 @@ class Candidate(Base, TenantMixin, TimestampMixin):
     other_urls: Mapped[list | None] = mapped_column(JSONB)
     work_authorization: Mapped[str | None] = mapped_column(String)
     summary: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default=CandidateStatus.ON_BENCH.value
+    )
 
     education: Mapped[list["CandidateEducation"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"

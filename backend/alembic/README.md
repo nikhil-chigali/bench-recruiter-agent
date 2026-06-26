@@ -29,6 +29,7 @@ Newest last.
 | `161a7bd63439` | `base` | 2026-06-20 | v1 skeleton — creates the 10 base tables |
 | `e3546d70251d` | `161a7bd63439` | 2026-06-20 | Adds the `invitation` table (team invites) |
 | `b1d2e3f40512` | `e3546d70251d` | 2026-06-21 | Renames the `recruiter` table to `users` (+ FK columns) |
+| `62800661e14c` | `b1d2e3f40512` | 2026-06-25 | Adds the `candidate.status` pipeline-stage column |
 
 ### `161a7bd63439` — initial schema
 
@@ -61,3 +62,10 @@ realigns the dependent index and constraint names (`ix_users_org_id`,
 `users_org_id_fkey`, `candidate_user_id_fkey`) so they read as `users` and autogenerate
 sees no drift. Pure renames — data-preserving, no drops. The `recruiter` **role** value
 (owner/admin/recruiter, stored in `users.role`) is intentionally unchanged.
+
+### `62800661e14c` — add candidate status
+
+Adds `candidate.status`, the bench pipeline stage (`on_bench`/`interviewing`/`placed`,
+stored as a plain string token validated via `callup.db.enums.CandidateStatus`). NOT NULL
+with a `server_default` of `on_bench`, so the column adds cleanly and every candidate always
+has a status.
