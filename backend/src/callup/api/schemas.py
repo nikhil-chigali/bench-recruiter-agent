@@ -38,3 +38,16 @@ class InvitationPreviewOut(BaseModel):
     email: str
     status: str
     email_matches: bool
+
+
+class CandidateCard(BaseModel):
+    id: uuid.UUID
+    name: str
+    title: str | None
+    status: str
+    work_authorization: str | None
+    years_experience: int
+    location: str | None
+    primary_skills: list[str]
+    recruiter_id: uuid.UUID
+    recruiter_name: str
