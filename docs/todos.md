@@ -13,7 +13,7 @@ Status: ⬜ not started · ▶ in progress · ✅ done
 | 1 | Auth + recruiter/org bootstrap | Email login → first sign-in establishes your identity | ✅ |
 | 2 | Onboarding + dashboard | First sign-in → onboarding (create org, become owner) → dashboard showing org + your role | ✅ |
 | 3 | Team invitations & roles | Owner/admin invite recruiters/admins via shareable link; members management + role-gated permissions | ✅ |
-| 4 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ⬜ |
+| 4 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ▶ |
 | 5 | Candidate documents | Upload candidate files to Supabase Storage; list them on the candidate | ⬜ |
 | 6 | Job postings (manual) | Create / list / view job postings by hand, incl. hiring-side contact | ⬜ |
 | 7 | Job ingestion (Dice) | Autonomous worker fetches + normalizes + dedupes Dice postings into the same job list | ⬜ |
@@ -43,6 +43,24 @@ implementation plan before code. Deferred schema pieces (pgvector embeddings, Di
 ingestion fields, fitment scores, normalized contacts, apply-session state machine,
 separate outreach record) land as migrations when their slice arrives — see
 [`database-schema-v1.md`](./database-schema-v1.md).
+
+## Slice 4 progress (candidate intake — built in chunks)
+
+Slice 4 is large, so it ships as chunks with their own plans under
+[`docs/superpowers/plans/`](./superpowers/plans/); the design + full chunk roadmap is in
+[`docs/superpowers/specs/2026-06-25-candidates-feature-design.md`](./superpowers/specs/2026-06-25-candidates-feature-design.md).
+
+- ✅ **Chunk 1 — foundation:** `candidate.title` + `candidate.primary_skills` columns (migration
+  `12c80bf0e060`), `candidateStatus` util, shared `AppLayout`, `/candidates` route.
+- ✅ **Chunk 2 — roster read:** role-scoped `GET /candidates` + the filterable roster (status
+  tabs, search, recruiter grouping, list/grid). Filtering is client-side (see follow-up below).
+- ✅ **Chunk 2.5 — shared-types pipeline:** `@callup/shared-types` generated from a committed
+  `backend/openapi.json` via `openapi-typescript`, with two-sided drift checks.
+- ✅ **Chunk 3 — quick-view drawer + status change:** RBAC-guarded `PATCH /candidates/:id` and the
+  card → drawer → optimistic status change; "Open full profile" → `/candidates/:id`.
+- ▶ **Chunk 4 — full profile view:** `GET /candidates/:id` + read-only profile page. **Plan written,
+  not yet executed.**
+- ⬜ Chunk 5 — add wizard (create); Chunk 6 — profile edit + reassignment; later chunks per the spec.
 
 ## Follow-ups (tech debt, not slice-blocking)
 
