@@ -36,7 +36,7 @@ const RESET_STATE: ProfileState = {
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { session, signOut } = useAuth()
+  const { session, loading: authLoading, signOut } = useAuth()
   const [state, setState] = useState<ProfileState>({
     loading: true,
     onboarded: false,
@@ -63,12 +63,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [signOut])
 
   useEffect(() => {
+    // Wait for the initial auth resolution before deciding anything. `session` is
+    // transiently null while Supabase restores it on a cold load; acting on that
+    // null would flip `loading` to false and bounce a deep link through
+    // RequireOnboarded before the profile fetch even starts.
+    if (authLoading) return
     if (!session) {
       setState(RESET_STATE)
       return
     }
     void load()
-  }, [session, load])
+  }, [authLoading, session, load])
 
   return (
     <ProfileContext.Provider value={{ ...state, refresh: load }}>
