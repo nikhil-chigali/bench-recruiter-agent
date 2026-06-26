@@ -45,6 +45,7 @@ export default function AppLayout({
           <button
             type="button"
             title="Sign out"
+            aria-label="Sign out"
             onClick={() => void signOut()}
             className="flex size-[30px] items-center justify-center rounded-lg border border-border bg-card text-[13px] text-muted-foreground hover:bg-[#f4f4f5]"
           >
