@@ -1,5 +1,5 @@
 import { initialsOf } from '@/lib/utils'
-import type { CandidateCard as Candidate } from '@/lib/candidates'
+import type { CandidateCard as Candidate } from '@callup/shared-types'
 import CandidateStatusPill from '@/components/CandidateStatusPill'
 
 function SkillChips({ skills, max }: { skills: string[]; max: number }) {

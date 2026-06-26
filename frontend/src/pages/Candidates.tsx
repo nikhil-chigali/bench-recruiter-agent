@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
 import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
-import type { CandidateCard as Candidate } from '@/lib/candidates'
+import type { CandidateCard as Candidate } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateCard from '@/components/CandidateCard'
 
