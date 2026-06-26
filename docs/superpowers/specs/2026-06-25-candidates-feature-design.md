@@ -172,13 +172,35 @@ wizard's Documents step and the profile's Documents section render placeholders.
   scaffolded. Nothing functional yet, but the seams are proven.
 
 ### Chunk 2 — Roster read (end-to-end)
-- **Backend:** `GET /candidates` — org + role scoping, `status` / `recruiter_id` / `search`
-  (name/title/skill) filters, returns card data including derived `years_experience`,
-  status, recruiter info, and grouping metadata; service + RBAC.
+- **Backend:** `GET /candidates` — **role/org scoping only** (recruiter → own; owner/admin →
+  whole org), returning card data with derived `years_experience`, status, and recruiter
+  info; service + RBAC + tests. Scope is derived from the authenticated user, never from a
+  client param.
+- **Decision:** status/search/recruiter filtering, counts, and grouping are done
+  **client-side** (matches the mockup, simplest, fine for small benches). Authorization is
+  server-side; filtering is presentation. Moving filters server-side + pagination is a
+  recorded follow-up in [`todos.md`](../../todos.md) for when benches grow.
 - **Frontend:** roster header, search, status segmented control with counts, recruiter
-  filter (owner/admin), list/grid toggle, candidate card (row + grid), grouped vs flat
-  rendering, empty state — wired to the real endpoint.
+  filter (owner/admin), list/grid toggle (persisted), candidate card (row + grid), grouped
+  vs flat rendering with a group per recruiter (empty groups shown), empty state — wired to
+  the real endpoint (+ `GET /members` for group names).
+- **Frontend types:** `packages/shared-types` does not exist yet, so Chunk 2 uses a local TS
+  type. It is migrated to generated types in Chunk 2.5.
 - **Deliverable:** a working, role-scoped, filterable roster on real data.
+
+### Chunk 2.5 — Shared types pipeline
+Set up before the profile/wizard chunks, whose larger schemas would otherwise be
+hand-mirrored on the frontend in several places (drift risk). Realizes the convention
+`frontend/CLAUDE.md` already assumes.
+- **Backend:** emit the OpenAPI schema (`app.openapi()`) to a committed `openapi.json`.
+- **Tooling:** a pnpm workspace (`pnpm-workspace.yaml`) + `packages/shared-types` generated
+  from `openapi.json` via `openapi-typescript`, exposed through the `@/*`/package import; a
+  `pnpm gen:types` script and a CI drift check (regenerate → fail if it differs from
+  committed).
+- **Migration:** replace Chunk 2's local `CandidateCard` TS type with the generated type as
+  the first consumer (proves the pipeline on something trivial).
+- **Deliverable:** backend contract changes surface as frontend type errors; no hand-declared
+  backend shapes. Each later backend chunk regenerates the types.
 
 ### Chunk 3 — Quick-view drawer + status change (end-to-end)
 - **Backend:** `PATCH /candidates/:id` accepting a status change (RBAC-guarded).

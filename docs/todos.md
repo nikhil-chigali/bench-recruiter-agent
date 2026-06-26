@@ -68,7 +68,9 @@ Carried out of completed slices; fold into a later slice when convenient.
 - **Repository unit-of-work.** Move the `commit()` out of `create_owned_org` to the
   request boundary once a route performs multiple writes. (Slice 1/2.)
 - **Generate `packages/shared-types`** from the backend OpenAPI schema instead of
-  hand-declaring response types (e.g. `Me`) on the frontend. (Slice 1.)
+  hand-declaring response types (e.g. `Me`) on the frontend. **Now scheduled as Candidates
+  Chunk 2.5** (pnpm workspace + `openapi-typescript` + CI drift check), set up before the
+  profile/wizard chunks that add large schemas. (Slice 1 → Slice 4 chunk 2.5.)
 - **Harden the conftest `.env` mini-parser** (quoted values / inline comments) if the
   backend `.env` ever needs them. (Slice 1.)
 - **Partial unique index on invitations.** Add `unique(org_id, email) WHERE status =
@@ -99,3 +101,9 @@ Carried out of completed slices; fold into a later slice when convenient.
   `tests/db/test_members_repo.py` seeds invitations with hardcoded token-hash strings
   (`"th-accept"`, `"th-sent"`); the `invitation.token_hash` unique constraint means parallel
   integration runs against the shared DB would collide. Use `uuid4().hex`. (Slice 3 hardening.)
+- **Server-side candidate filtering + pagination.** The candidates roster (Candidates
+  chunk 2) returns the full role-scoped bench and does status/search/recruiter filtering,
+  counts, and grouping **client-side** — fine for small benches but doesn't scale (whole-org
+  payload, no pagination). Move those filters server-side as `GET /candidates` query params
+  and add pagination once benches grow. Authorization/scoping is already server-side; this
+  is a perf/scale change, not security. (Slice 4 — Candidates chunk 2.)
