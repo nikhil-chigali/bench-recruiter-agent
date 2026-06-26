@@ -110,6 +110,12 @@ Carried out of completed slices; fold into a later slice when convenient.
   `tests/db/test_members_repo.py` seeds invitations with hardcoded token-hash strings
   (`"th-accept"`, `"th-sent"`); the `invitation.token_hash` unique constraint means parallel
   integration runs against the shared DB would collide. Use `uuid4().hex`. (Slice 3 hardening.)
+- **Drawer can show a stale candidate after a roster refetch.** In `Candidates.tsx`, the
+  quick-view drawer's `selected` candidate is a snapshot. If the roster's `useEffect` refetches
+  and repopulates `candidates` while the drawer is open (e.g. an `isManager` flip or remount),
+  `selected` isn't reconciled against the new array, so the open drawer could show pre-refetch
+  data. Reconcile `selected` against the refreshed list (or re-fetch the single candidate) when
+  the full profile fetch lands. (Slice 4 — Candidates chunk 3; fold into chunk 4.)
 - **Server-side candidate filtering + pagination.** The candidates roster (Candidates
   chunk 2) returns the full role-scoped bench and does status/search/recruiter filtering,
   counts, and grouping **client-side** — fine for small benches but doesn't scale (whole-org
