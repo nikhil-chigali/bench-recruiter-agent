@@ -67,10 +67,19 @@ Carried out of completed slices; fold into a later slice when convenient.
   endpoint redirects to `/login`, not just the profile fetch. (Slice 1/2.)
 - **Repository unit-of-work.** Move the `commit()` out of `create_owned_org` to the
   request boundary once a route performs multiple writes. (Slice 1/2.)
-- **Generate `packages/shared-types`** from the backend OpenAPI schema instead of
-  hand-declaring response types (e.g. `Me`) on the frontend. **Now scheduled as Candidates
-  Chunk 2.5** (pnpm workspace + `openapi-typescript` + CI drift check), set up before the
-  profile/wizard chunks that add large schemas. (Slice 1 → Slice 4 chunk 2.5.)
+- ~~**Generate `packages/shared-types`** from the backend OpenAPI schema instead of
+  hand-declaring response types on the frontend.~~ **DONE in Candidates Chunk 2.5** — pnpm
+  workspace + `openapi-typescript` generating `@callup/shared-types` from a committed
+  `backend/openapi.json`, with two-sided drift checks (backend pytest + frontend CI) and all
+  hand-declared backend shapes (`CandidateCard`, `Member`, invitation types, `User`, `Me`)
+  migrated. (Slice 1 → Slice 4 chunk 2.5.)
+- **Shared-types drift loop assumes both CI workflows stay un-path-filtered.** The
+  backend→`openapi.json`→`openapi.d.ts` drift loop is airtight *only because* neither
+  `backend-ci.yml` nor `frontend-ci.yml` is path-filtered, so every PR runs both guards. Both
+  files note a possible future "path-filter upgrade." If `frontend-ci.yml` is ever filtered to
+  `frontend/**`, a backend-only PR that regenerates `backend/openapi.json` would skip the
+  frontend drift step and let a stale `openapi.d.ts` merge. If that upgrade is made, the
+  frontend workflow's trigger paths MUST also include `backend/openapi.json`. (Slice 4 chunk 2.5.)
 - **Harden the conftest `.env` mini-parser** (quoted values / inline comments) if the
   backend `.env` ever needs them. (Slice 1.)
 - **Partial unique index on invitations.** Add `unique(org_id, email) WHERE status =
