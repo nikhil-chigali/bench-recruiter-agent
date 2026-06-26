@@ -20,3 +20,6 @@ export type InvitationPreview = components['schemas']['InvitationPreviewOut']
 export type User = components['schemas']['UserOut']
 /** Backend `GET /me` response (generated). */
 export type Me = components['schemas']['MeOut']
+
+/** Backend `GET /candidates/:id` full profile (generated). */
+export type CandidateDetail = components['schemas']['CandidateDetail']
