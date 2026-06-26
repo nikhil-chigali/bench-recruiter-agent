@@ -68,7 +68,8 @@ export default function CandidateProfile() {
         }
       } catch (e) {
         if (!ignore) {
-          if (e instanceof ApiError && e.status === 404) setError('Candidate not found.')
+          if (e instanceof ApiError && (e.status === 404 || e.status === 403))
+            setError('Candidate not found.')
           else setError(e instanceof Error ? e.message : 'Failed to load candidate')
         }
       } finally {
