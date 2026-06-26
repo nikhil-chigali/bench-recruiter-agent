@@ -5,7 +5,14 @@ from httpx import ASGITransport, AsyncClient
 
 from callup.api.deps import get_current_user
 from callup.db import repositories
-from callup.db.models import Candidate, CandidateExperience, User
+from callup.db.models import (
+    Candidate,
+    CandidateCertification,
+    CandidateEducation,
+    CandidateExperience,
+    CandidateProject,
+    User,
+)
 from callup.db.session import get_session
 from callup.main import app
 
@@ -232,5 +239,140 @@ async def test_patch_invalid_status_returns_422(monkeypatch):
         async with await _client() as c:
             resp = await c.patch(f"/candidates/{CAND}", json={"status": "bogus"})
         assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+def _detailed_candidate(owner_id: uuid.UUID) -> Candidate:
+    cand = _candidate(owner_id)
+    cand.email = "arjun@example.com"
+    cand.phone = "555-0100"
+    cand.linkedin_url = "https://linkedin.com/in/arjun"
+    cand.github_url = None
+    cand.portfolio_url = None
+    cand.summary = "Backend engineer."
+    cand.experience = [
+        CandidateExperience(
+            id=uuid.uuid4(),
+            company="Acme",
+            position="Senior Dev",
+            start_date=date(2016, 1, 1),
+            end_date=date(2025, 1, 1),
+            description=["Built X"],
+            tech_stack=["Java"],
+        )
+    ]
+    cand.education = [
+        CandidateEducation(
+            id=uuid.uuid4(),
+            university="MIT",
+            location="Cambridge, MA",
+            degree="BS CS",
+            cgpa=None,
+            coursework=None,
+            start_date=None,
+            end_date=None,
+        )
+    ]
+    cand.projects = [
+        CandidateProject(
+            id=uuid.uuid4(),
+            title="Callup",
+            project_link=None,
+            github_link=None,
+            description=["Did Y"],
+            tech_stack=["Go"],
+        )
+    ]
+    cand.certifications = [
+        CandidateCertification(
+            id=uuid.uuid4(),
+            name="AWS SAA",
+            issued_by="AWS",
+            badge_url=None,
+            issued_on=date(2022, 6, 1),
+            verification_url=None,
+        )
+    ]
+    return cand
+
+
+async def test_get_candidate_detail_shape(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["summary"] == "Backend engineer."
+        assert body["years_experience"] == 9
+        assert body["recruiter_name"] == "Actor"
+        assert body["linkedin_url"] == "https://linkedin.com/in/arjun"
+        assert len(body["experience"]) == 1
+        assert body["experience"][0]["company"] == "Acme"
+        assert body["experience"][0]["tech_stack"] == ["Java"]
+        assert len(body["education"]) == 1
+        assert body["education"][0]["university"] == "MIT"
+        assert len(body["projects"]) == 1
+        assert len(body["certifications"]) == 1
+        assert body["certifications"][0]["name"] == "AWS SAA"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_gets_own_detail(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}")
+        assert resp.status_code == 200
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_cannot_get_others_detail(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(OTHER)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}")
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_get_unknown_candidate_returns_404(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return None
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}")
+        assert resp.status_code == 404
     finally:
         app.dependency_overrides.clear()

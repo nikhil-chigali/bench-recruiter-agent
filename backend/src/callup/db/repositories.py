@@ -241,6 +241,24 @@ async def get_candidate(
     return result.scalar_one_or_none()
 
 
+async def get_candidate_detail(
+    session: AsyncSession, candidate_id: uuid.UUID, org_id: uuid.UUID
+) -> Candidate | None:
+    """One candidate scoped to an org with all profile children eager-loaded (None if not in org)."""
+    stmt = (
+        select(Candidate)
+        .where(Candidate.id == candidate_id, Candidate.org_id == org_id)
+        .options(
+            selectinload(Candidate.experience),
+            selectinload(Candidate.education),
+            selectinload(Candidate.projects),
+            selectinload(Candidate.certifications),
+        )
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def update_candidate_status(
     session: AsyncSession, candidate: Candidate, status: str
 ) -> Candidate:

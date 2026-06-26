@@ -103,6 +103,194 @@
         "title": "CandidateCard",
         "type": "object"
       },
+      "CandidateDetail": {
+        "properties": {
+          "certifications": {
+            "items": {
+              "$ref": "#/components/schemas/CertificationOut"
+            },
+            "title": "Certifications",
+            "type": "array"
+          },
+          "education": {
+            "items": {
+              "$ref": "#/components/schemas/EducationOut"
+            },
+            "title": "Education",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "experience": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceOut"
+            },
+            "title": "Experience",
+            "type": "array"
+          },
+          "github_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Url"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "portfolio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portfolio Url"
+          },
+          "primary_skills": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Primary Skills",
+            "type": "array"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectOut"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "recruiter_id": {
+            "format": "uuid",
+            "title": "Recruiter Id",
+            "type": "string"
+          },
+          "recruiter_name": {
+            "title": "Recruiter Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "work_authorization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Authorization"
+          },
+          "years_experience": {
+            "title": "Years Experience",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "title",
+          "status",
+          "work_authorization",
+          "years_experience",
+          "location",
+          "primary_skills",
+          "recruiter_id",
+          "recruiter_name",
+          "email",
+          "phone",
+          "linkedin_url",
+          "github_url",
+          "portfolio_url",
+          "summary",
+          "experience",
+          "education",
+          "projects",
+          "certifications"
+        ],
+        "title": "CandidateDetail",
+        "type": "object"
+      },
       "CandidateStatusUpdateIn": {
         "properties": {
           "status": {
@@ -114,6 +302,254 @@
           "status"
         ],
         "title": "CandidateStatusUpdateIn",
+        "type": "object"
+      },
+      "CertificationOut": {
+        "properties": {
+          "badge_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Badge Url"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issued_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued By"
+          },
+          "issued_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued On"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "verification_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Url"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "issued_by",
+          "badge_url",
+          "issued_on",
+          "verification_url"
+        ],
+        "title": "CertificationOut",
+        "type": "object"
+      },
+      "EducationOut": {
+        "properties": {
+          "cgpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgpa"
+          },
+          "coursework": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coursework"
+          },
+          "degree": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degree"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "university",
+          "location",
+          "degree",
+          "cgpa",
+          "coursework",
+          "start_date",
+          "end_date"
+        ],
+        "title": "EducationOut",
+        "type": "object"
+      },
+      "ExperienceOut": {
+        "properties": {
+          "company": {
+            "title": "Company",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "tech_stack": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tech Stack"
+          }
+        },
+        "required": [
+          "id",
+          "company",
+          "position",
+          "start_date",
+          "end_date",
+          "description",
+          "tech_stack"
+        ],
+        "title": "ExperienceOut",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -326,6 +762,79 @@
         "title": "OrgCreateIn",
         "type": "object"
       },
+      "ProjectOut": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "github_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Link"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "project_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Link"
+          },
+          "tech_stack": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tech Stack"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "project_link",
+          "github_link",
+          "description",
+          "tech_stack"
+        ],
+        "title": "ProjectOut",
+        "type": "object"
+      },
       "RoleUpdateIn": {
         "properties": {
           "role": {
@@ -467,6 +976,47 @@
       }
     },
     "/candidates/{candidate_id}": {
+      "get": {
+        "operationId": "get_candidate_candidates__candidate_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Candidate",
+        "tags": [
+          "candidates"
+        ]
+      },
       "patch": {
         "operationId": "update_candidate_candidates__candidate_id__patch",
         "parameters": [

@@ -28,7 +28,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Candidate */
+        get: operations["get_candidate_candidates__candidate_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -267,10 +268,119 @@ export interface components {
             /** Years Experience */
             years_experience: number;
         };
+        /** CandidateDetail */
+        CandidateDetail: {
+            /** Certifications */
+            certifications: components["schemas"]["CertificationOut"][];
+            /** Education */
+            education: components["schemas"]["EducationOut"][];
+            /** Email */
+            email: string | null;
+            /** Experience */
+            experience: components["schemas"]["ExperienceOut"][];
+            /** Github Url */
+            github_url: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Linkedin Url */
+            linkedin_url: string | null;
+            /** Location */
+            location: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string | null;
+            /** Portfolio Url */
+            portfolio_url: string | null;
+            /** Primary Skills */
+            primary_skills: string[];
+            /** Projects */
+            projects: components["schemas"]["ProjectOut"][];
+            /**
+             * Recruiter Id
+             * Format: uuid
+             */
+            recruiter_id: string;
+            /** Recruiter Name */
+            recruiter_name: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string | null;
+            /** Title */
+            title: string | null;
+            /** Work Authorization */
+            work_authorization: string | null;
+            /** Years Experience */
+            years_experience: number;
+        };
         /** CandidateStatusUpdateIn */
         CandidateStatusUpdateIn: {
             /** Status */
             status: string;
+        };
+        /** CertificationOut */
+        CertificationOut: {
+            /** Badge Url */
+            badge_url: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issued By */
+            issued_by: string | null;
+            /** Issued On */
+            issued_on: string | null;
+            /** Name */
+            name: string;
+            /** Verification Url */
+            verification_url: string | null;
+        };
+        /** EducationOut */
+        EducationOut: {
+            /** Cgpa */
+            cgpa: number | null;
+            /** Coursework */
+            coursework: string | null;
+            /** Degree */
+            degree: string | null;
+            /** End Date */
+            end_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location */
+            location: string | null;
+            /** Start Date */
+            start_date: string | null;
+            /** University */
+            university: string;
+        };
+        /** ExperienceOut */
+        ExperienceOut: {
+            /** Company */
+            company: string;
+            /** Description */
+            description: string[] | null;
+            /** End Date */
+            end_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: string | null;
+            /** Start Date */
+            start_date: string | null;
+            /** Tech Stack */
+            tech_stack: string[] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -364,6 +474,24 @@ export interface components {
             /** Org Name */
             org_name: string;
         };
+        /** ProjectOut */
+        ProjectOut: {
+            /** Description */
+            description: string[] | null;
+            /** Github Link */
+            github_link: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Project Link */
+            project_link: string | null;
+            /** Tech Stack */
+            tech_stack: string[] | null;
+            /** Title */
+            title: string;
+        };
         /** RoleUpdateIn */
         RoleUpdateIn: {
             /** Role */
@@ -436,6 +564,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateCard"][];
+                };
+            };
+        };
+    };
+    get_candidate_candidates__candidate_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
