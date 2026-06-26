@@ -10,19 +10,10 @@ import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { useAuth } from '@/lib/auth'
 
-export type User = {
-  id: string
-  email: string
-  name: string
-  role: string
-  org_id: string
-  org_name: string
-}
+import type { Me, User } from '@callup/shared-types'
 
-type MeResponse = {
-  onboarded: boolean
-  user: User | null
-}
+// Re-exported so `@/lib/profile` stays the import site for `User` across the app.
+export type { User }
 
 type ProfileState = {
   loading: boolean
@@ -56,7 +47,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const me = await api.get<MeResponse>('/me')
+      const me = await api.get<Me>('/me')
       setState({ loading: false, onboarded: me.onboarded, user: me.user, error: null })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
