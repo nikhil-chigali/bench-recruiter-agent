@@ -30,6 +30,7 @@ Newest last.
 | `e3546d70251d` | `161a7bd63439` | 2026-06-20 | Adds the `invitation` table (team invites) |
 | `b1d2e3f40512` | `e3546d70251d` | 2026-06-21 | Renames the `recruiter` table to `users` (+ FK columns) |
 | `62800661e14c` | `b1d2e3f40512` | 2026-06-25 | Adds the `candidate.status` pipeline-stage column |
+| `12c80bf0e060` | `62800661e14c` | 2026-06-25 | Adds `candidate.title` + `candidate.primary_skills` |
 
 ### `161a7bd63439` — initial schema
 
@@ -69,3 +70,10 @@ Adds `candidate.status`, the bench pipeline stage (`on_bench`/`interviewing`/`pl
 stored as a plain string token validated via `callup.db.enums.CandidateStatus`). NOT NULL
 with a `server_default` of `on_bench`, so the column adds cleanly and every candidate always
 has a status.
+
+### `12c80bf0e060` — add candidate title and primary_skills
+
+Adds two headline columns to `candidate`: `title` (nullable text) and `primary_skills`
+(jsonb `string[]`, NOT NULL default `[]`). Both are required/validated at the create API
+boundary in a later chunk. `years_experience` is derived on read from
+`candidate_experience` and is deliberately not stored.

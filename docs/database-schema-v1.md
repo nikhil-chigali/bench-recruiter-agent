@@ -54,6 +54,8 @@ erDiagram
         text work_authorization "see enums"
         text summary
         text status "see enums"
+        text title
+        jsonb primary_skills "string[]"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -154,6 +156,9 @@ erDiagram
 
 ## Notes & conventions
 
+- **Candidate headline fields:** `title` (role headline) and `primary_skills` (a
+  `string[]`) are recruiter-curated. `years_experience` is **not** a column — it is derived
+  on read from `candidate_experience` date ranges (null end = present).
 - **Tenancy:** `org_id` on every business table marks the owning organization (the
   data-isolation boundary). MVP is single-org; multi-recruiter is later enabled via RLS +
   middleware, never a column-shape migration. Distinct from `user_id`, which is
