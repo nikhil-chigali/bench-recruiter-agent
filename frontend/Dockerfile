@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Dependency layer — cached unless the lockfile/manifest changes. .npmrc carries the
 # minimum-release-age policy; --frozen-lockfile skips re-resolution so it stays fast.
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY packages/shared-types/package.json ./packages/shared-types/
 RUN pnpm install --frozen-lockfile
 
 COPY . .
