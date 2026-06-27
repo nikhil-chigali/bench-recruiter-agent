@@ -26,3 +26,6 @@ export type CandidateDetail = components['schemas']['CandidateDetail']
 
 /** Backend `POST /candidates` request body (generated). */
 export type CandidateCreate = components['schemas']['CandidateCreate']
+
+/** Backend `PATCH /candidates/:id` request body (generated). */
+export type CandidateUpdate = components['schemas']['CandidateUpdate']

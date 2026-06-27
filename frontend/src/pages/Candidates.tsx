@@ -5,7 +5,7 @@ import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
 import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
 import { clearDraft, hasDraft } from '@/lib/candidateDraft'
-import type { CandidateCard as Candidate, Member } from '@callup/shared-types'
+import type { CandidateCard as Candidate, CandidateDetail, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateCard from '@/components/CandidateCard'
 import CandidateDrawer from '@/components/CandidateDrawer'
@@ -53,7 +53,7 @@ export default function Candidates() {
     setCandidates((cs) => cs.map((x) => (x.id === current.id ? { ...x, status: next } : x)))
     setSelected((s) => (s && s.id === current.id ? { ...s, status: next } : s))
     try {
-      const updated = await api.patch<Candidate>(`/candidates/${current.id}`, { status: next })
+      const updated = await api.patch<CandidateDetail>(`/candidates/${current.id}`, { status: next })
       setCandidates((cs) => cs.map((x) => (x.id === updated.id ? updated : x)))
       setSelected((s) => (s && s.id === updated.id ? updated : s))
     } catch (e) {

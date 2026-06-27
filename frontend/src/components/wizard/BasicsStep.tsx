@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import type { CandidateDraft } from '@/lib/candidateDraft'
 import { WORK_AUTH_OPTIONS } from '@/lib/workAuth'
 import { Field, inputClass } from '@/components/wizard/Field'
+import SkillsChipEditor from '@/components/SkillsChipEditor'
 
 export default function BasicsStep({
   draft,
@@ -12,15 +12,6 @@ export default function BasicsStep({
   update: (patch: Partial<CandidateDraft>) => void
   errors: { name?: string; title?: string }
 }) {
-  const [skill, setSkill] = useState('')
-
-  function addSkill() {
-    const s = skill.trim()
-    setSkill('')
-    if (!s || draft.primary_skills.includes(s)) return
-    update({ primary_skills: [...draft.primary_skills, s] })
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-4">
@@ -38,36 +29,10 @@ export default function BasicsStep({
       </div>
 
       <Field label="Primary skills">
-        <div className="flex flex-wrap items-center gap-1.5 rounded-[9px] border border-input bg-card p-2">
-          {draft.primary_skills.map((s) => (
-            <span
-              key={s}
-              className="inline-flex items-center gap-1 rounded-[6px] bg-[#f4f4f5] px-2 py-0.5 text-[12px] text-[#52525b]"
-            >
-              {s}
-              <button
-                type="button"
-                onClick={() => update({ primary_skills: draft.primary_skills.filter((x) => x !== s) })}
-                className="text-[#a1a1aa] hover:text-foreground"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            value={skill}
-            onChange={(e) => setSkill(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                addSkill()
-              }
-            }}
-            onBlur={addSkill}
-            placeholder="Add a skill…"
-            className="min-w-[120px] flex-1 bg-transparent px-1 text-[13px] outline-none"
-          />
-        </div>
+        <SkillsChipEditor
+          skills={draft.primary_skills}
+          onChange={(next) => update({ primary_skills: next })}
+        />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
