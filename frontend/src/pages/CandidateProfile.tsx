@@ -9,8 +9,8 @@ import AppLayout from '@/components/AppLayout'
 import CandidateStatusChanger from '@/components/CandidateStatusChanger'
 import OverviewEditor, { type OverviewDraft } from '@/components/profile/OverviewEditor'
 import Section from '@/components/profile/Section'
-import ExperienceSection from '@/components/profile/ExperienceSection'
-import EducationSection from '@/components/profile/EducationSection'
+import ExperienceEditor from '@/components/profile/ExperienceEditor'
+import EducationEditor from '@/components/profile/EducationEditor'
 import ProjectsSection from '@/components/profile/ProjectsSection'
 import CertificationsSection from '@/components/profile/CertificationsSection'
 
@@ -339,12 +339,20 @@ export default function CandidateProfile() {
               </Section>
               )}
 
-              <Section id="experience" title="Experience">
-                <ExperienceSection items={detail.experience} />
-              </Section>
-              <Section id="education" title="Education">
-                <EducationSection items={detail.education} />
-              </Section>
+              <ExperienceEditor
+                id="experience"
+                candidateId={detail.id}
+                items={detail.experience}
+                canEdit={!editing}
+                onSaved={setDetail}
+              />
+              <EducationEditor
+                id="education"
+                candidateId={detail.id}
+                items={detail.education}
+                canEdit={!editing}
+                onSaved={setDetail}
+              />
               <Section id="projects" title="Projects">
                 <ProjectsSection items={detail.projects} />
               </Section>
