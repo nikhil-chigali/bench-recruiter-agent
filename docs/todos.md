@@ -79,6 +79,15 @@ Carried out of completed slices; fold into a later slice when convenient.
   `loading:false` directly on the 401 branch (don't rely on the session-null effect),
   and handle a `signOut()` rejection so a failed sign-out can't strand the user on the
   retry screen with a stale session. (Slice 2.)
+- ~~**Cold-load deep-link bounce.** Cold-loading any protected deep link
+  (`/candidates/:id`, `/candidates`, `/`, `/accept-invite`) bounced to the dashboard and
+  lost the URL.~~ **FIXED (commit `d1138cb`, found during chunk 4 smoke test.)** Root cause:
+  `ProfileProvider` acted on the transiently-null session during Supabase's cold-load
+  session restore, flipping `loading→false`, so `RequireOnboarded` redirected to
+  `/onboarding` (then on to `/`) before the `/me` fetch even started. Fix gates the
+  profile-load effect on `auth.loading` so it waits for the initial auth resolution
+  instead of reacting to the transient null. Related to the profile-robustness item
+  above. (Slice 4 — Candidates chunk 4 smoke test.)
 - **201 happy-path route test for `POST /orgs`** with a fake session that returns the
   org on backfill (success path is currently only covered via the `create_owned_org`
   integration test). (Slice 2.)
@@ -135,7 +144,9 @@ Carried out of completed slices; fold into a later slice when convenient.
   and repopulates `candidates` while the drawer is open (e.g. an `isManager` flip or remount),
   `selected` isn't reconciled against the new array, so the open drawer could show pre-refetch
   data. Reconcile `selected` against the refreshed list (or re-fetch the single candidate) when
-  the full profile fetch lands. (Slice 4 — Candidates chunk 3; fold into chunk 4.)
+  the full profile fetch lands. **Still open** — chunk 4 was read-only and didn't touch the
+  drawer, so this wasn't addressed there; fold into a later chunk that reworks the roster/drawer
+  (e.g. chunk 6 edit, or server-side filtering below). (Slice 4 — Candidates chunk 3.)
 - **Server-side candidate filtering + pagination.** The candidates roster (Candidates
   chunk 2) returns the full role-scoped bench and does status/search/recruiter filtering,
   counts, and grouping **client-side** — fine for small benches but doesn't scale (whole-org
