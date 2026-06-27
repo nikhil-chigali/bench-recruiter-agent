@@ -20,9 +20,9 @@ export default function CandidateStatusChanger({
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={disabled}
-        className="inline-flex cursor-pointer rounded-full outline-none disabled:cursor-default"
+        className="group inline-flex cursor-pointer rounded-full outline-none transition hover:brightness-95 disabled:cursor-default disabled:hover:brightness-100"
       >
-        <CandidateStatusPill status={status} />
+        <CandidateStatusPill status={status} interactive />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[160px]">
         {CANDIDATE_STATUS_ORDER.map((token) => {
