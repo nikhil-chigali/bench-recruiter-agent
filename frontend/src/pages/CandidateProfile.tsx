@@ -11,8 +11,8 @@ import OverviewEditor, { type OverviewDraft } from '@/components/profile/Overvie
 import Section from '@/components/profile/Section'
 import ExperienceEditor from '@/components/profile/ExperienceEditor'
 import EducationEditor from '@/components/profile/EducationEditor'
-import ProjectsSection from '@/components/profile/ProjectsSection'
-import CertificationsSection from '@/components/profile/CertificationsSection'
+import ProjectEditor from '@/components/profile/ProjectEditor'
+import CertificationEditor from '@/components/profile/CertificationEditor'
 
 const NAV = [
   { id: 'summary', label: 'Summary' },
@@ -353,12 +353,20 @@ export default function CandidateProfile() {
                 canEdit={!editing}
                 onSaved={setDetail}
               />
-              <Section id="projects" title="Projects">
-                <ProjectsSection items={detail.projects} />
-              </Section>
-              <Section id="certifications" title="Certifications">
-                <CertificationsSection items={detail.certifications} />
-              </Section>
+              <ProjectEditor
+                id="projects"
+                candidateId={detail.id}
+                items={detail.projects}
+                canEdit={!editing}
+                onSaved={setDetail}
+              />
+              <CertificationEditor
+                id="certifications"
+                candidateId={detail.id}
+                items={detail.certifications}
+                canEdit={!editing}
+                onSaved={setDetail}
+              />
               <Section id="documents" title="Documents">
                 <p className="text-[13px] text-muted-foreground">
                   Document uploads arrive in a later update.
