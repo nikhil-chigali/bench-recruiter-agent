@@ -198,6 +198,20 @@ export default function CandidateProfile() {
     }
   }
 
+  if (error && !loading) {
+    return (
+      <AppLayout active="candidates">
+        <CandidateLoadError
+          candidateId={id}
+          notFound={errorStatus === 404 || errorStatus === 403 || errorStatus === 422}
+          status={errorStatus}
+          message={error}
+          onRetry={retry}
+        />
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout active="candidates">
       <div className="w-full max-w-[1140px] px-9 pt-[22px] pb-12">
@@ -207,21 +221,13 @@ export default function CandidateProfile() {
               Candidates
             </Link>
             <span className="text-[#d4d4d8]">/</span>
-            <span className="text-foreground">{detail?.name ?? (error ? id : '…')}</span>
+            <span className="text-foreground">{detail?.name ?? '…'}</span>
             {editing && (
               <span className="ml-1 rounded-[5px] border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-[#b45309]">
                 EDITING
               </span>
             )}
           </div>
-          {error && !loading && (
-            <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-[#ef4444]" />
-              {errorStatus === 404 || errorStatus === 403 || errorStatus === 422
-                ? 404
-                : (errorStatus || 'offline')}
-            </div>
-          )}
           {detail && !loading && !error && (
             <div className="flex items-center gap-2">
               {editing ? (
@@ -257,15 +263,6 @@ export default function CandidateProfile() {
         </div>
 
         {loading && <p className="mt-6 text-[13px] text-muted-foreground">Loading…</p>}
-        {error && !loading && (
-          <CandidateLoadError
-            candidateId={id}
-            notFound={errorStatus === 404 || errorStatus === 403 || errorStatus === 422}
-            status={errorStatus}
-            message={error}
-            onRetry={retry}
-          />
-        )}
 
         {detail && !loading && !error && (
           <>
