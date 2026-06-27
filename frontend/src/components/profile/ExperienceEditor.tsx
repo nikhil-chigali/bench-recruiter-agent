@@ -6,6 +6,7 @@ import Section from '@/components/profile/Section'
 import ExperienceSection from '@/components/profile/ExperienceSection'
 import StringListEditor from '@/components/profile/StringListEditor'
 import SkillsChipEditor from '@/components/SkillsChipEditor'
+import EditActions from '@/components/profile/EditActions'
 import { Field, inputClass } from '@/components/wizard/Field'
 
 type Item = CandidateDetail['experience'][number]
@@ -81,26 +82,7 @@ export default function ExperienceEditor({
     }
   }
 
-  const action = editing ? (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => { setEditing(false); setError(null) }}
-        disabled={saving}
-        className="rounded-[8px] border border-input bg-card px-3 py-1 text-[12.5px] hover:bg-[#f4f4f5] disabled:opacity-50"
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        onClick={save}
-        disabled={saving}
-        className="rounded-[8px] bg-brand px-3 py-1 text-[12.5px] font-medium text-white hover:opacity-90 disabled:opacity-50"
-      >
-        {saving ? 'Saving…' : 'Save'}
-      </button>
-    </div>
-  ) : canEdit ? (
+  const action = !editing && canEdit ? (
     <button
       type="button"
       onClick={start}
@@ -150,14 +132,14 @@ export default function ExperienceEditor({
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => setRows((rs) => [...rs, EMPTY])}
-            className="self-start rounded-[9px] border border-input bg-card px-3 py-2 text-[13px] hover:bg-[#f4f4f5]"
-          >
-            + Add experience
-          </button>
-          {error && <p className="text-[13px] text-destructive">{error}</p>}
+          <EditActions
+            addLabel="+ Add experience"
+            onAdd={() => setRows((rs) => [...rs, EMPTY])}
+            onCancel={() => { setEditing(false); setError(null) }}
+            onSave={save}
+            saving={saving}
+            error={error}
+          />
         </div>
       )}
     </Section>
