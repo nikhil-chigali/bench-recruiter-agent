@@ -62,7 +62,12 @@ Slice 4 is large, so it ships as chunks with their own plans under
   education/projects/certifications, scoped via the shared `_ensure_access` helper) and the read-only
   `/candidates/:id` profile page (breadcrumb, section nav, header reusing the Chunk-3 status changer,
   composed sections, documents placeholder).
-- ⬜ Chunk 5 — add wizard (create); Chunk 6 — profile edit + reassignment; later chunks per the spec.
+- ✅ **Chunk 5 — add wizard (create):** role-scoped `POST /candidates` (creates the candidate +
+  experience/education/projects/certifications in one transaction; assignee resolved server-side —
+  recruiter→self, owner/admin→chosen org member or 400, default self) and the 6-step `/candidates/new`
+  wizard (localStorage draft autosave, "Save & exit", roster "Add candidate" button + resume-draft
+  banner). Documents step is a placeholder (Chunk 8). Both contract artifacts regenerated.
+- ⬜ Chunk 6 — profile edit + reassignment; Chunk 7 — child section editors; Chunk 8 — documents & storage.
 
 ## Follow-ups (tech debt, not slice-blocking)
 
@@ -75,6 +80,16 @@ Carried out of completed slices; fold into a later slice when convenient.
   session-fixture that runs each integration test inside a transaction and rolls back,
   so nothing ever persists. When it lands, also restore the stronger idempotency
   assertion (`second.name == "Jane"`) dropped in slice 2. (From slice 1/2.)
+- **`create_candidate` real-persistence coverage.** Chunk 5's six `POST /candidates` tests
+  all monkeypatch `repositories.create_candidate`, so the fast suite never exercises the actual
+  child INSERTs, `org_id` propagation, the pre-commit PK capture, or the `get_candidate_detail`
+  re-fetch — only the manual browser check did. Latent NOT-NULL risk is ruled out (every unset
+  child column is nullable), so it merged as a tracked follow-up. Add a `@pytest.mark.integration`
+  test that calls the real `create_candidate` and asserts the persisted candidate + children carry
+  `org_id`, `status == on_bench`, and the detail re-fetch is fully populated. **Sequence this after
+  the rollback-fixture item above** so it doesn't add another live-DB test that can orphan rows.
+  While there, add three cheap fast-suite asserts the chunk-5 review flagged (owner-defaults-to-self
+  assignee path; blank-`name` → 422; invalid-`work_authorization` → 422). (Slice 4 — Candidates chunk 5.)
 - **Onboarding/profile sign-out robustness.** In `frontend/src/lib/profile.tsx`, set
   `loading:false` directly on the 401 branch (don't rely on the session-null effect),
   and handle a `signOut()` rejection so a failed sign-out can't strand the user on the
