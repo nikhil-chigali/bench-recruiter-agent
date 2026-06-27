@@ -7,14 +7,29 @@ combined with vector distance ORDER BY) is implemented here in Phase 3.
 
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from callup.db.enums import InvitationStatus, RecruiterRole
-from callup.db.models import Candidate, Invitation, Org, User
+from callup.db.enums import CandidateStatus, InvitationStatus, RecruiterRole
+from callup.db.models import (
+    Candidate,
+    CandidateCertification,
+    CandidateEducation,
+    CandidateExperience,
+    CandidateProject,
+    Invitation,
+    Org,
+    User,
+)
+
+if TYPE_CHECKING:
+    # Type-only import: the API request model is read for its attributes here, but the
+    # db layer must not import the api layer at runtime (one-directional dependency).
+    from callup.api.schemas import CandidateCreate
 
 
 async def get_user(session: AsyncSession, user_id: uuid.UUID) -> User | None:
@@ -274,4 +289,64 @@ async def update_candidate_status(
     await session.commit()
     refreshed = await get_candidate(session, candidate_id, org_id)
     assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def create_candidate(
+    session: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: "CandidateCreate",
+) -> Candidate:
+    """Persist a candidate and all its children in one transaction; return it detail-loaded.
+
+    The PK is captured before commit because the default expire-on-commit would otherwise
+    turn the post-commit child reads into illegal async lazy loads; we re-fetch with
+    ``get_candidate_detail`` to return a fully eager-loaded graph.
+    """
+    candidate = Candidate(
+        org_id=org_id,
+        user_id=user_id,
+        name=data.name,
+        title=data.title,
+        status=CandidateStatus.ON_BENCH.value,
+        primary_skills=data.primary_skills,
+        work_authorization=data.work_authorization,
+        location=data.location,
+        email=data.email,
+        phone=data.phone,
+        experience=[
+            CandidateExperience(
+                org_id=org_id,
+                company=e.company,
+                position=e.position,
+                start_date=e.start_date,
+                end_date=e.end_date,
+            )
+            for e in data.experience
+        ],
+        education=[
+            CandidateEducation(org_id=org_id, university=ed.university, degree=ed.degree)
+            for ed in data.education
+        ],
+        projects=[
+            CandidateProject(
+                org_id=org_id,
+                title=p.title,
+                project_link=p.project_link,
+                github_link=p.github_link,
+            )
+            for p in data.projects
+        ],
+        certifications=[
+            CandidateCertification(org_id=org_id, name=ct.name, issued_by=ct.issued_by)
+            for ct in data.certifications
+        ],
+    )
+    session.add(candidate)
+    await session.flush()
+    candidate_id = candidate.id
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just created within this transaction
     return refreshed

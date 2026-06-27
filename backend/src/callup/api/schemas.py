@@ -1,7 +1,11 @@
 import datetime as _dt
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from callup.db.enums import WorkAuthorization
+
+_WORK_AUTHS = {w.value for w in WorkAuthorization}
 
 
 class UserOut(BaseModel):
@@ -113,3 +117,111 @@ class CandidateDetail(BaseModel):
     education: list[EducationOut]
     projects: list[ProjectOut]
     certifications: list[CertificationOut]
+
+
+class ExperienceIn(BaseModel):
+    company: str
+    position: str | None = None
+    start_date: _dt.date | None = None
+    end_date: _dt.date | None = None
+
+    @field_validator("company")
+    @classmethod
+    def _company(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("company is required")
+        return v
+
+    @model_validator(mode="after")
+    def _dates(self) -> "ExperienceIn":
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError("end_date must be on or after start_date")
+        return self
+
+
+class EducationIn(BaseModel):
+    university: str
+    degree: str | None = None
+
+    @field_validator("university")
+    @classmethod
+    def _university(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("university is required")
+        return v
+
+
+class ProjectIn(BaseModel):
+    title: str
+    project_link: str | None = None
+    github_link: str | None = None
+
+    @field_validator("title")
+    @classmethod
+    def _title(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("title is required")
+        return v
+
+
+class CertificationIn(BaseModel):
+    name: str
+    issued_by: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("name is required")
+        return v
+
+
+class CandidateCreate(BaseModel):
+    name: str
+    title: str
+    primary_skills: list[str] = Field(default_factory=list)
+    work_authorization: str | None = None
+    location: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    user_id: uuid.UUID | None = None
+    experience: list[ExperienceIn] = Field(default_factory=list)
+    education: list[EducationIn] = Field(default_factory=list)
+    projects: list[ProjectIn] = Field(default_factory=list)
+    certifications: list[CertificationIn] = Field(default_factory=list)
+
+    @field_validator("name", "title")
+    @classmethod
+    def _required_text(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be blank")
+        if len(v) > 200:
+            raise ValueError("must be at most 200 characters")
+        return v
+
+    @field_validator("location", "email", "phone")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @field_validator("work_authorization")
+    @classmethod
+    def _work_auth(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        if v not in _WORK_AUTHS:
+            raise ValueError("invalid work authorization")
+        return v
+
+    @field_validator("primary_skills")
+    @classmethod
+    def _skills(cls, v: list[str]) -> list[str]:
+        return [s.strip() for s in v if s and s.strip()]

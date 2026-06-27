@@ -14,7 +14,8 @@ export interface paths {
         /** List Candidates */
         get: operations["list_candidates_candidates_get"];
         put?: never;
-        post?: never;
+        /** Create Candidate */
+        post: operations["create_candidate_candidates_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -268,6 +269,33 @@ export interface components {
             /** Years Experience */
             years_experience: number;
         };
+        /** CandidateCreate */
+        CandidateCreate: {
+            /** Certifications */
+            certifications?: components["schemas"]["CertificationIn"][];
+            /** Education */
+            education?: components["schemas"]["EducationIn"][];
+            /** Email */
+            email?: string | null;
+            /** Experience */
+            experience?: components["schemas"]["ExperienceIn"][];
+            /** Location */
+            location?: string | null;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Primary Skills */
+            primary_skills?: string[];
+            /** Projects */
+            projects?: components["schemas"]["ProjectIn"][];
+            /** Title */
+            title: string;
+            /** User Id */
+            user_id?: string | null;
+            /** Work Authorization */
+            work_authorization?: string | null;
+        };
         /** CandidateDetail */
         CandidateDetail: {
             /** Certifications */
@@ -322,6 +350,13 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** CertificationIn */
+        CertificationIn: {
+            /** Issued By */
+            issued_by?: string | null;
+            /** Name */
+            name: string;
+        };
         /** CertificationOut */
         CertificationOut: {
             /** Badge Url */
@@ -339,6 +374,13 @@ export interface components {
             name: string;
             /** Verification Url */
             verification_url: string | null;
+        };
+        /** EducationIn */
+        EducationIn: {
+            /** Degree */
+            degree?: string | null;
+            /** University */
+            university: string;
         };
         /** EducationOut */
         EducationOut: {
@@ -361,6 +403,17 @@ export interface components {
             start_date: string | null;
             /** University */
             university: string;
+        };
+        /** ExperienceIn */
+        ExperienceIn: {
+            /** Company */
+            company: string;
+            /** End Date */
+            end_date?: string | null;
+            /** Position */
+            position?: string | null;
+            /** Start Date */
+            start_date?: string | null;
         };
         /** ExperienceOut */
         ExperienceOut: {
@@ -474,6 +527,15 @@ export interface components {
             /** Org Name */
             org_name: string;
         };
+        /** ProjectIn */
+        ProjectIn: {
+            /** Github Link */
+            github_link?: string | null;
+            /** Project Link */
+            project_link?: string | null;
+            /** Title */
+            title: string;
+        };
         /** ProjectOut */
         ProjectOut: {
             /** Description */
@@ -564,6 +626,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateCard"][];
+                };
+            };
+        };
+    };
+    create_candidate_candidates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

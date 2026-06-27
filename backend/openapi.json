@@ -103,6 +103,115 @@
         "title": "CandidateCard",
         "type": "object"
       },
+      "CandidateCreate": {
+        "properties": {
+          "certifications": {
+            "items": {
+              "$ref": "#/components/schemas/CertificationIn"
+            },
+            "title": "Certifications",
+            "type": "array"
+          },
+          "education": {
+            "items": {
+              "$ref": "#/components/schemas/EducationIn"
+            },
+            "title": "Education",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "experience": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceIn"
+            },
+            "title": "Experience",
+            "type": "array"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "primary_skills": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Primary Skills",
+            "type": "array"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectIn"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "work_authorization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Authorization"
+          }
+        },
+        "required": [
+          "name",
+          "title"
+        ],
+        "title": "CandidateCreate",
+        "type": "object"
+      },
       "CandidateDetail": {
         "properties": {
           "certifications": {
@@ -304,6 +413,30 @@
         "title": "CandidateStatusUpdateIn",
         "type": "object"
       },
+      "CertificationIn": {
+        "properties": {
+          "issued_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued By"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CertificationIn",
+        "type": "object"
+      },
       "CertificationOut": {
         "properties": {
           "badge_url": {
@@ -370,6 +503,30 @@
           "verification_url"
         ],
         "title": "CertificationOut",
+        "type": "object"
+      },
+      "EducationIn": {
+        "properties": {
+          "degree": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degree"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          }
+        },
+        "required": [
+          "university"
+        ],
+        "title": "EducationIn",
         "type": "object"
       },
       "EducationOut": {
@@ -463,6 +620,54 @@
           "end_date"
         ],
         "title": "EducationOut",
+        "type": "object"
+      },
+      "ExperienceIn": {
+        "properties": {
+          "company": {
+            "title": "Company",
+            "type": "string"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          }
+        },
+        "required": [
+          "company"
+        ],
+        "title": "ExperienceIn",
         "type": "object"
       },
       "ExperienceOut": {
@@ -762,6 +967,41 @@
         "title": "OrgCreateIn",
         "type": "object"
       },
+      "ProjectIn": {
+        "properties": {
+          "github_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Link"
+          },
+          "project_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Link"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ProjectIn",
+        "type": "object"
+      },
       "ProjectOut": {
         "properties": {
           "description": {
@@ -970,6 +1210,45 @@
           }
         },
         "summary": "List Candidates",
+        "tags": [
+          "candidates"
+        ]
+      },
+      "post": {
+        "operationId": "create_candidate_candidates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Candidate",
         "tags": [
           "candidates"
         ]

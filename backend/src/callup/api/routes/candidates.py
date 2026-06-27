@@ -2,10 +2,12 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from callup.api.deps import CurrentUser, SessionDep
 from callup.api.schemas import (
     CandidateCard,
+    CandidateCreate,
     CandidateDetail,
     CertificationOut,
     EducationOut,
@@ -37,6 +39,21 @@ def _ensure_access(actor: User, candidate: Candidate) -> None:
     """A recruiter may touch only their own candidates; owner/admin may touch any in the org."""
     if actor.role == RecruiterRole.RECRUITER.value and candidate.user_id != actor.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient permissions")
+
+
+async def _resolve_assignee(
+    actor: User, requested_user_id: uuid.UUID | None, session: AsyncSession
+) -> uuid.UUID:
+    """Who the new candidate is assigned to. Recruiters are forced to themselves; owner/admin
+    may pick any member of their org (defaulting to self)."""
+    if actor.role == RecruiterRole.RECRUITER.value:
+        return actor.id
+    if requested_user_id is None:
+        return actor.id
+    member = await repositories.get_member(session, requested_user_id, actor.org_id)
+    if member is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "assignee is not a member of this org")
+    return member.id
 
 
 def _card(c: Candidate, recruiter_name: str) -> CandidateCard:
@@ -130,6 +147,16 @@ async def list_candidates(actor: CurrentUser, session: SessionDep) -> list[Candi
     members = await repositories.list_members(session, actor.org_id)
     name_by_id = {m.id: m.name for m in members}
     return [_card(c, name_by_id.get(c.user_id, "—")) for c in candidates]
+
+
+@router.post("/candidates", response_model=CandidateDetail, status_code=status.HTTP_201_CREATED)
+async def create_candidate(
+    body: CandidateCreate, actor: CurrentUser, session: SessionDep
+) -> CandidateDetail:
+    assignee_id = await _resolve_assignee(actor, body.user_id, session)
+    candidate = await repositories.create_candidate(session, actor.org_id, assignee_id, body)
+    member = await repositories.get_member(session, candidate.user_id, actor.org_id)
+    return _detail(candidate, member.name if member is not None else "—")
 
 
 @router.get("/candidates/{candidate_id}", response_model=CandidateDetail)

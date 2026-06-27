@@ -376,3 +376,163 @@ async def test_get_unknown_candidate_returns_404(monkeypatch):
         assert resp.status_code == 404
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_recruiter_creates_self_assigned(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["user_id"] = user_id
+        captured["name"] = data.name
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post("/candidates", json={"name": "New Cand", "title": "Engineer"})
+        assert resp.status_code == 201
+        assert captured["user_id"] == ACTOR
+        assert captured["name"] == "New Cand"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_ignores_requested_assignee(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["user_id"] = user_id
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates", json={"name": "X", "title": "Y", "user_id": str(OTHER)}
+            )
+        assert resp.status_code == 201
+        assert captured["user_id"] == ACTOR  # recruiter forced to self, body user_id ignored
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_creates_with_explicit_assignee(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["user_id"] = user_id
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return User(
+            id=user_id, org_id=ORG, role="recruiter", name="Other Rec", email="o@example.com"
+        )
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates", json={"name": "X", "title": "Y", "user_id": str(OTHER)}
+            )
+        assert resp.status_code == 201
+        assert captured["user_id"] == OTHER
+        assert resp.json()["recruiter_name"] == "Other Rec"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_assignee_not_member_returns_400(monkeypatch):
+    called = {"created": False}
+
+    async def fake_create(session, org_id, user_id, data):
+        called["created"] = True
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return None  # requested assignee is not a member of this org
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates", json={"name": "X", "title": "Y", "user_id": str(OTHER)}
+            )
+        assert resp.status_code == 400
+        assert called["created"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_create_persists_children(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["data"] = data
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates",
+                json={
+                    "name": "X",
+                    "title": "Y",
+                    "primary_skills": ["Go", "  ", "Rust"],
+                    "experience": [
+                        {
+                            "company": "Acme",
+                            "position": "Dev",
+                            "start_date": "2020-01-01",
+                            "end_date": "2022-01-01",
+                        }
+                    ],
+                    "education": [{"university": "MIT", "degree": "BS"}],
+                    "projects": [{"title": "P1"}],
+                    "certifications": [{"name": "AWS"}],
+                },
+            )
+        assert resp.status_code == 201
+        data = captured["data"]
+        assert data.primary_skills == ["Go", "Rust"]  # blanks dropped, order preserved
+        assert len(data.experience) == 1 and data.experience[0].company == "Acme"
+        assert len(data.education) == 1 and data.education[0].university == "MIT"
+        assert len(data.projects) == 1 and data.projects[0].title == "P1"
+        assert len(data.certifications) == 1 and data.certifications[0].name == "AWS"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_create_requires_title_returns_422(monkeypatch):
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post("/candidates", json={"name": "X", "title": "   "})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
