@@ -23,3 +23,6 @@ export type Me = components['schemas']['MeOut']
 
 /** Backend `GET /candidates/:id` full profile (generated). */
 export type CandidateDetail = components['schemas']['CandidateDetail']
+
+/** Backend `POST /candidates` request body (generated). */
+export type CandidateCreate = components['schemas']['CandidateCreate']
