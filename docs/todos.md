@@ -67,7 +67,12 @@ Slice 4 is large, so it ships as chunks with their own plans under
   recruiter→self, owner/admin→chosen org member or 400, default self) and the 6-step `/candidates/new`
   wizard (localStorage draft autosave, "Save & exit", roster "Add candidate" button + resume-draft
   banner). Documents step is a placeholder (Chunk 8). Both contract artifacts regenerated.
-- ⬜ Chunk 6 — profile edit + reassignment; Chunk 7 — child section editors; Chunk 8 — documents & storage.
+- ✅ **Chunk 6 — profile edit + reassignment:** `PATCH /candidates/:id` generalized to a partial
+  `CandidateUpdate` (status + Overview fields name/title/primary_skills/work_authorization/location/
+  summary + `user_id` reassignment, owner/admin only and guarded), returning the full `CandidateDetail`;
+  profile edit mode (Edit/Cancel/Save, `EDITING` badge, shared `SkillsChipEditor`, owner/admin "Assigned
+  to" select). Both contract artifacts regenerated.
+- ⬜ Chunk 7 — child section editors; Chunk 8 — documents & storage.
 
 ## Follow-ups (tech debt, not slice-blocking)
 
@@ -164,6 +169,12 @@ Carried out of completed slices; fold into a later slice when convenient.
   the full profile fetch lands. **Still open** — chunk 4 was read-only and didn't touch the
   drawer, so this wasn't addressed there; fold into a later chunk that reworks the roster/drawer
   (e.g. chunk 6 edit, or server-side filtering below). (Slice 4 — Candidates chunk 3.)
+- **Reassign select is blank if `/members` fails to load.** On the profile edit mode
+  (`CandidateProfile.tsx`), an owner/admin's "Assigned to" select is populated from `GET /members`;
+  if that fetch fails the list is empty and the select renders blank. Verified safe — `draft.user_id`
+  stays equal to `detail.recruiter_id`, so `save()` never sends `user_id` and no accidental reassignment
+  happens — but the UX is poor. Add a "couldn't load members" hint (and/or seed the current assignee as a
+  fallback option). (Slice 4 — Candidates chunk 6.)
 - **Server-side candidate filtering + pagination.** The candidates roster (Candidates
   chunk 2) returns the full role-scoped bench and does status/search/recruiter filtering,
   counts, and grouping **client-side** — fine for small benches but doesn't scale (whole-org
