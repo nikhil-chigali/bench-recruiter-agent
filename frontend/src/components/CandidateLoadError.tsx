@@ -24,7 +24,7 @@ export default function CandidateLoadError({
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex items-center justify-between border-b border-border px-9 py-[18px]">
+      <header className="flex items-center justify-between border-b border-border bg-sidebar px-9 py-[18px]">
         <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Link to="/candidates" className="hover:text-foreground">
             ← Candidates
