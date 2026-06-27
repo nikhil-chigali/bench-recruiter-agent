@@ -78,6 +78,16 @@ Slice 4 is large, so it ships as chunks with their own plans under
   `CandidateDetail`); the four `…In` schemas expanded to all editable fields (shared with the create
   wizard); per-section profile editors (view ↔ edit, add/remove rows, Save/Cancel) reusing
   `SkillsChipEditor` + a new `StringListEditor`. Both contract artifacts regenerated.
+- ✅ **Post-chunk polish (UI + intake completion).** A pass over the shipped chunks: (a) completed the
+  add-wizard to **full field coverage** — experience/projects gain highlights + tech stack, education
+  gains location/CGPA/coursework/dates, certifications gain issued-on/badge/verification URLs — and
+  extended `CandidateCreate` + `create_candidate` with candidate-level
+  `linkedin_url`/`github_url`/`portfolio_url`/`summary` so intake matches the schema (both contract
+  artifacts regenerated). (b) UI affordances: a sticky Save/Cancel action bar shared across the section
+  editors (`EditActions`); status chips show an editable caret + hover while the read-only roster chip
+  stays plain; the unsaved-draft banner uses shadcn buttons and names the candidate; and a redesigned
+  candidate **not-found / load-error** screen (`CandidateLoadError`) with a full-width header, a status
+  indicator, the requested path, and a retry for non-404 failures.
 - ⬜ Chunk 8 — documents & storage.
 
 ## Follow-ups (tech debt, not slice-blocking)
@@ -176,9 +186,9 @@ Carried out of completed slices; fold into a later slice when convenient.
   drawer, so this wasn't addressed there; fold into a later chunk that reworks the roster/drawer
   (e.g. chunk 6 edit, or server-side filtering below). (Slice 4 — Candidates chunk 3.)
 - **Child-editor polish (chunk 7).** Two small deferred items from the chunk-7 final review:
-  (1) `EducationEditor` sends `cgpa: Number(r.cgpa)` — a non-numeric value becomes `NaN` → serialized to
-  `null` (silently dropped rather than flagged); mitigated today by the `<input type="number">`, but a
-  `Number.isNaN` guard would be stricter. (2) The section-replace validation/RBAC tests are
+  (1) `EducationEditor` — and now the add-wizard `EducationStep` / `toPayload` — send `cgpa: Number(...)`,
+  so a non-numeric value becomes `NaN` → serialized to `null` (silently dropped rather than flagged);
+  mitigated today by the `<input type="number">`, but a `Number.isNaN` guard would be stricter. (2) The section-replace validation/RBAC tests are
   representative, not exhaustive — 403 is asserted on experience, 404 on projects, 422 on experience
   only; a couple of parametrized cases would cover education/projects/certifications' required-key and
   date-order validators (the guard/validator code is shared, so risk is low). (Slice 4 — Candidates chunk 7.)
