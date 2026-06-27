@@ -80,16 +80,18 @@ Carried out of completed slices; fold into a later slice when convenient.
   session-fixture that runs each integration test inside a transaction and rolls back,
   so nothing ever persists. When it lands, also restore the stronger idempotency
   assertion (`second.name == "Jane"`) dropped in slice 2. (From slice 1/2.)
-- **`create_candidate` real-persistence coverage.** Chunk 5's six `POST /candidates` tests
+- ~~**`create_candidate` real-persistence coverage.** Chunk 5's six `POST /candidates` tests
   all monkeypatch `repositories.create_candidate`, so the fast suite never exercises the actual
   child INSERTs, `org_id` propagation, the pre-commit PK capture, or the `get_candidate_detail`
-  re-fetch — only the manual browser check did. Latent NOT-NULL risk is ruled out (every unset
-  child column is nullable), so it merged as a tracked follow-up. Add a `@pytest.mark.integration`
-  test that calls the real `create_candidate` and asserts the persisted candidate + children carry
-  `org_id`, `status == on_bench`, and the detail re-fetch is fully populated. **Sequence this after
-  the rollback-fixture item above** so it doesn't add another live-DB test that can orphan rows.
-  While there, add three cheap fast-suite asserts the chunk-5 review flagged (owner-defaults-to-self
-  assignee path; blank-`name` → 422; invalid-`work_authorization` → 422). (Slice 4 — Candidates chunk 5.)
+  re-fetch.~~ **DONE (Candidates chunk 5 final-review follow-up).** Added
+  `tests/db/test_candidates_repo.py::test_create_candidate_persists_graph_and_reloads_detail`
+  (`@pytest.mark.integration`): seeds an org+owner, calls the real `create_candidate`, then re-fetches
+  in a fresh session and asserts the candidate + every child carry `org_id`, `status == on_bench`, and
+  the detail is fully populated; cleans up in `finally` (children cascade on candidate delete). Also
+  added the three fast-suite asserts the review flagged to `tests/api/test_candidates.py`
+  (owner-defaults-to-self; blank-`name` → 422; invalid-`work_authorization` → 422). **Caveat:** like the
+  other DB integration tests, it still writes to live Supabase and cleans up in a `finally` — it should
+  migrate onto the transaction-rollback fixture above once that lands. (Slice 4 — Candidates chunk 5.)
 - **Onboarding/profile sign-out robustness.** In `frontend/src/lib/profile.tsx`, set
   `loading:false` directly on the 401 branch (don't rely on the session-null effect),
   and handle a `signOut()` rejection so a failed sign-out can't strand the user on the

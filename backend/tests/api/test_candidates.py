@@ -536,3 +536,51 @@ async def test_create_requires_title_returns_422(monkeypatch):
         assert resp.status_code == 422
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_create_requires_name_returns_422(monkeypatch):
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post("/candidates", json={"name": "   ", "title": "Y"})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_create_rejects_invalid_work_authorization_returns_422(monkeypatch):
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates",
+                json={"name": "X", "title": "Y", "work_authorization": "NOPE"},
+            )
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_with_no_assignee_defaults_to_self(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["user_id"] = user_id
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("owner")
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post("/candidates", json={"name": "X", "title": "Y"})
+        assert resp.status_code == 201
+        assert captured["user_id"] == ACTOR  # no body user_id → owner assigned to self
+    finally:
+        app.dependency_overrides.clear()
