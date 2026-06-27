@@ -400,17 +400,103 @@
         "title": "CandidateDetail",
         "type": "object"
       },
-      "CandidateStatusUpdateIn": {
+      "CandidateUpdate": {
+        "description": "Partial update for a candidate's Overview + assignee. Every field is optional; only the\nfields the client actually sends are applied (the route uses ``model_dump(exclude_unset=True)``).",
         "properties": {
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "primary_skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Skills"
+          },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "work_authorization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Authorization"
           }
         },
-        "required": [
-          "status"
-        ],
-        "title": "CandidateStatusUpdateIn",
+        "title": "CandidateUpdate",
         "type": "object"
       },
       "CertificationIn": {
@@ -1314,7 +1400,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CandidateStatusUpdateIn"
+                "$ref": "#/components/schemas/CandidateUpdate"
               }
             }
           },
@@ -1325,7 +1411,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CandidateCard"
+                  "$ref": "#/components/schemas/CandidateDetail"
                 }
               }
             },

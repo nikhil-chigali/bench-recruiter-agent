@@ -167,8 +167,9 @@ erDiagram
   recruiter`) and `org.owner_user_id` model who administers the org. Role-gated team
   management — invitations, role changes, member removal, ownership transfer, and org
   deletion — shipped in slice 3 (the `INVITATION` table was added by migration
-  `e3546d70251d`; it is not drawn in this v1 ERD). Still future scope: assigning candidates
-  across recruiters and org-level stats.
+  `e3546d70251d`; it is not drawn in this v1 ERD). Owner/admin can reassign a candidate to
+  another org member via `PATCH /candidates/:id` (slice 4 — candidates chunk 6). Still future
+  scope: org-level stats.
 - **User ↔ auth-user lifecycle:** `users.id` *is* the Supabase auth user id, so
   the two are deleted together. Removing a member (and deleting an org, which cascades to all
   its members) also deletes the corresponding `auth.users` row via the Supabase Auth Admin

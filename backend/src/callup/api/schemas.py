@@ -3,9 +3,10 @@ import uuid
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from callup.db.enums import WorkAuthorization
+from callup.db.enums import CandidateStatus, WorkAuthorization
 
 _WORK_AUTHS = {w.value for w in WorkAuthorization}
+_STATUSES = {s.value for s in CandidateStatus}
 
 
 class UserOut(BaseModel):
@@ -224,4 +225,64 @@ class CandidateCreate(BaseModel):
     @field_validator("primary_skills")
     @classmethod
     def _skills(cls, v: list[str]) -> list[str]:
+        return [s.strip() for s in v if s and s.strip()]
+
+
+class CandidateUpdate(BaseModel):
+    """Partial update for a candidate's Overview + assignee. Every field is optional; only the
+    fields the client actually sends are applied (the route uses ``model_dump(exclude_unset=True)``).
+    """
+
+    status: str | None = None
+    name: str | None = None
+    title: str | None = None
+    primary_skills: list[str] | None = None
+    work_authorization: str | None = None
+    location: str | None = None
+    summary: str | None = None
+    user_id: uuid.UUID | None = None
+
+    @field_validator("status")
+    @classmethod
+    def _status(cls, v: str | None) -> str:
+        if v is None:
+            raise ValueError("status must not be null")
+        if v not in _STATUSES:
+            raise ValueError("status must be on_bench, interviewing, or placed")
+        return v
+
+    @field_validator("name", "title")
+    @classmethod
+    def _required_text(cls, v: str | None) -> str:
+        if v is None:
+            raise ValueError("must not be null")
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be blank")
+        if len(v) > 200:
+            raise ValueError("must be at most 200 characters")
+        return v
+
+    @field_validator("location", "summary")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @field_validator("work_authorization")
+    @classmethod
+    def _work_auth(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        if v not in _WORK_AUTHS:
+            raise ValueError("invalid work authorization")
+        return v
+
+    @field_validator("primary_skills")
+    @classmethod
+    def _skills(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
         return [s.strip() for s in v if s and s.strip()]

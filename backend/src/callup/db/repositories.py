@@ -274,20 +274,21 @@ async def get_candidate_detail(
     return result.scalar_one_or_none()
 
 
-async def update_candidate_status(
-    session: AsyncSession, candidate: Candidate, status: str
-) -> Candidate:
-    """Persist a new status; return the candidate reloaded with experience eager-loaded.
+async def update_candidate(session: AsyncSession, candidate: Candidate, changes: dict) -> Candidate:
+    """Apply a partial set of column changes and return the candidate detail-loaded.
 
-    The PKs are captured before commit because the default expire-on-commit would otherwise
-    make the post-commit attribute reads (incl. the experience relationship) a lazy load,
-    which is illegal under async SQLAlchemy.
+    ``changes`` is the caller's already-validated field→value map (from
+    ``CandidateUpdate.model_dump(exclude_unset=True)``); only those columns are written. The PK
+    is captured before commit because the default expire-on-commit would otherwise turn the
+    post-commit child reads into illegal async lazy loads; we re-fetch with
+    ``get_candidate_detail`` to return a fully eager-loaded graph.
     """
     candidate_id = candidate.id
     org_id = candidate.org_id
-    candidate.status = status
+    for field, value in changes.items():
+        setattr(candidate, field, value)
     await session.commit()
-    refreshed = await get_candidate(session, candidate_id, org_id)
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
     assert refreshed is not None  # just updated within this transaction
     return refreshed
 

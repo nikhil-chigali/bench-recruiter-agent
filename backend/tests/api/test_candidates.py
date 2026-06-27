@@ -139,22 +139,23 @@ def _candidate(owner_id: uuid.UUID, status: str = "on_bench") -> Candidate:
     return cand
 
 
-async def test_recruiter_patches_own_candidate(monkeypatch):
-    called = {}
+async def test_recruiter_patches_own_status(monkeypatch):
+    captured = {}
 
     async def fake_get_candidate(session, candidate_id, org_id):
         return _candidate(ACTOR)
 
-    async def fake_update_status(session, candidate, new_status):
-        called["status"] = new_status
-        candidate.status = new_status
+    async def fake_update(session, candidate, changes):
+        captured["changes"] = changes
+        for k, v in changes.items():
+            setattr(candidate, k, v)
         return candidate
 
     async def fake_get_member(session, user_id, org_id):
         return _actor("recruiter")
 
     monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
-    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
     app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     app.dependency_overrides[get_session] = lambda: _Session()
@@ -162,8 +163,53 @@ async def test_recruiter_patches_own_candidate(monkeypatch):
         async with await _client() as c:
             resp = await c.patch(f"/candidates/{CAND}", json={"status": "interviewing"})
         assert resp.status_code == 200
-        assert called["status"] == "interviewing"
+        assert captured["changes"] == {"status": "interviewing"}
         assert resp.json()["status"] == "interviewing"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_recruiter_edits_own_overview(monkeypatch):
+    captured = {}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    async def fake_update(session, candidate, changes):
+        captured["changes"] = changes
+        for k, v in changes.items():
+            setattr(candidate, k, v)
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(
+                f"/candidates/{CAND}",
+                json={
+                    "name": "  Arjun M.  ",
+                    "title": "Staff Engineer",
+                    "primary_skills": ["Go", "  ", "Rust"],
+                    "summary": "  Backend.  ",
+                    "location": "",
+                },
+            )
+        assert resp.status_code == 200
+        changes = captured["changes"]
+        assert changes["name"] == "Arjun M."  # trimmed
+        assert changes["title"] == "Staff Engineer"
+        assert changes["primary_skills"] == ["Go", "Rust"]  # blanks dropped
+        assert changes["summary"] == "Backend."  # trimmed
+        assert changes["location"] is None  # blank → cleared
+        assert "user_id" not in changes  # not sent → not touched
+        assert resp.json()["name"] == "Arjun M."
     finally:
         app.dependency_overrides.clear()
 
@@ -174,12 +220,12 @@ async def test_recruiter_cannot_patch_others_candidate(monkeypatch):
     async def fake_get_candidate(session, candidate_id, org_id):
         return _candidate(OTHER)
 
-    async def fake_update_status(session, candidate, new_status):
+    async def fake_update(session, candidate, changes):
         called["updated"] = True
         return candidate
 
     monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
-    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
     app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     app.dependency_overrides[get_session] = lambda: _Session()
     try:
@@ -191,19 +237,43 @@ async def test_recruiter_cannot_patch_others_candidate(monkeypatch):
         app.dependency_overrides.clear()
 
 
+async def test_recruiter_cannot_reassign_returns_403(monkeypatch):
+    called = {"updated": False}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)  # the recruiter's OWN candidate
+
+    async def fake_update(session, candidate, changes):
+        called["updated"] = True
+        return candidate
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"user_id": str(OTHER)})
+        assert resp.status_code == 403  # reassignment is owner/admin only
+        assert called["updated"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
 async def test_owner_patches_any_candidate(monkeypatch):
     async def fake_get_candidate(session, candidate_id, org_id):
         return _candidate(OTHER)
 
-    async def fake_update_status(session, candidate, new_status):
-        candidate.status = new_status
+    async def fake_update(session, candidate, changes):
+        for k, v in changes.items():
+            setattr(candidate, k, v)
         return candidate
 
     async def fake_get_member(session, user_id, org_id):
         return User(id=OTHER, org_id=ORG, role="recruiter", name="Other Rec", email="o@example.com")
 
     monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
-    monkeypatch.setattr(repositories, "update_candidate_status", fake_update_status)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
     monkeypatch.setattr(repositories, "get_member", fake_get_member)
     app.dependency_overrides[get_current_user] = lambda: _actor("owner")
     app.dependency_overrides[get_session] = lambda: _Session()
@@ -213,6 +283,66 @@ async def test_owner_patches_any_candidate(monkeypatch):
         assert resp.status_code == 200
         assert resp.json()["status"] == "placed"
         assert resp.json()["recruiter_name"] == "Other Rec"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_reassigns_to_member(monkeypatch):
+    captured = {}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    async def fake_update(session, candidate, changes):
+        captured["changes"] = changes
+        for k, v in changes.items():
+            setattr(candidate, k, v)
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return User(
+            id=user_id, org_id=ORG, role="recruiter", name="Other Rec", email="o@example.com"
+        )
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"user_id": str(OTHER)})
+        assert resp.status_code == 200
+        assert captured["changes"]["user_id"] == OTHER
+        assert resp.json()["recruiter_id"] == str(OTHER)
+        assert resp.json()["recruiter_name"] == "Other Rec"
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_owner_reassign_to_non_member_returns_400(monkeypatch):
+    called = {"updated": False}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    async def fake_update(session, candidate, changes):
+        called["updated"] = True
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return None  # requested assignee is not a member of this org
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"user_id": str(OTHER)})
+        assert resp.status_code == 400
+        assert called["updated"] is False
     finally:
         app.dependency_overrides.clear()
 
@@ -238,6 +368,36 @@ async def test_patch_invalid_status_returns_422(monkeypatch):
     try:
         async with await _client() as c:
             resp = await c.patch(f"/candidates/{CAND}", json={"status": "bogus"})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_patch_blank_title_returns_422(monkeypatch):
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"title": "   "})
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_patch_invalid_work_auth_returns_422(monkeypatch):
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(f"/candidates/{CAND}", json={"work_authorization": "NOPE"})
         assert resp.status_code == 422
     finally:
         app.dependency_overrides.clear()

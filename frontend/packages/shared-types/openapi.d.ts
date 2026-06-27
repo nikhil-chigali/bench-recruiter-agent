@@ -345,10 +345,28 @@ export interface components {
             /** Years Experience */
             years_experience: number;
         };
-        /** CandidateStatusUpdateIn */
-        CandidateStatusUpdateIn: {
+        /**
+         * CandidateUpdate
+         * @description Partial update for a candidate's Overview + assignee. Every field is optional; only the
+         *     fields the client actually sends are applied (the route uses ``model_dump(exclude_unset=True)``).
+         */
+        CandidateUpdate: {
+            /** Location */
+            location?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Primary Skills */
+            primary_skills?: string[] | null;
             /** Status */
-            status: string;
+            status?: string | null;
+            /** Summary */
+            summary?: string | null;
+            /** Title */
+            title?: string | null;
+            /** User Id */
+            user_id?: string | null;
+            /** Work Authorization */
+            work_authorization?: string | null;
         };
         /** CertificationIn */
         CertificationIn: {
@@ -705,7 +723,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CandidateStatusUpdateIn"];
+                "application/json": components["schemas"]["CandidateUpdate"];
             };
         };
         responses: {
@@ -715,7 +733,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CandidateCard"];
+                    "application/json": components["schemas"]["CandidateDetail"];
                 };
             };
             /** @description Validation Error */

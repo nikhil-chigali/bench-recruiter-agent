@@ -1,7 +1,6 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from callup.api.deps import CurrentUser, SessionDep
@@ -9,30 +8,18 @@ from callup.api.schemas import (
     CandidateCard,
     CandidateCreate,
     CandidateDetail,
+    CandidateUpdate,
     CertificationOut,
     EducationOut,
     ExperienceOut,
     ProjectOut,
 )
 from callup.db import repositories
-from callup.db.enums import CandidateStatus, RecruiterRole
+from callup.db.enums import RecruiterRole
 from callup.db.models import Candidate, User
 from callup.services.candidates.roster import years_of_experience
 
 router = APIRouter(tags=["candidates"])
-
-_CANDIDATE_STATUSES = {s.value for s in CandidateStatus}
-
-
-class CandidateStatusUpdateIn(BaseModel):
-    status: str
-
-    @field_validator("status")
-    @classmethod
-    def _check_status(cls, v: str) -> str:
-        if v not in _CANDIDATE_STATUSES:
-            raise ValueError("status must be on_bench, interviewing, or placed")
-        return v
 
 
 def _ensure_access(actor: User, candidate: Candidate) -> None:
@@ -171,17 +158,25 @@ async def get_candidate(
     return _detail(candidate, member.name if member is not None else "—")
 
 
-@router.patch("/candidates/{candidate_id}", response_model=CandidateCard)
+@router.patch("/candidates/{candidate_id}", response_model=CandidateDetail)
 async def update_candidate(
     candidate_id: uuid.UUID,
-    body: CandidateStatusUpdateIn,
+    body: CandidateUpdate,
     actor: CurrentUser,
     session: SessionDep,
-) -> CandidateCard:
+) -> CandidateDetail:
     candidate = await repositories.get_candidate(session, candidate_id, actor.org_id)
     if candidate is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
     _ensure_access(actor, candidate)
-    updated = await repositories.update_candidate_status(session, candidate, body.status)
+    changes = body.model_dump(exclude_unset=True)
+    if "user_id" in changes:
+        # Reassignment is owner/admin only, and only to a member of the actor's org.
+        if actor.role == RecruiterRole.RECRUITER.value:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "only owner/admin may reassign")
+        member = await repositories.get_member(session, changes["user_id"], actor.org_id)
+        if member is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "assignee is not a member of this org")
+    updated = await repositories.update_candidate(session, candidate, changes)
     member = await repositories.get_member(session, updated.user_id, actor.org_id)
-    return _card(updated, member.name if member is not None else "—")
+    return _detail(updated, member.name if member is not None else "—")
