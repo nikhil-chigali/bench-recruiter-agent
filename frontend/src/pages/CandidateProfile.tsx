@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { initialsOf } from '@/lib/utils'
-import type { CandidateCard, CandidateDetail } from '@callup/shared-types'
+import { useProfile } from '@/lib/profile'
+import type { CandidateDetail, CandidateUpdate, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateStatusChanger from '@/components/CandidateStatusChanger'
+import OverviewEditor, { type OverviewDraft } from '@/components/profile/OverviewEditor'
 import Section from '@/components/profile/Section'
 import ExperienceSection from '@/components/profile/ExperienceSection'
 import EducationSection from '@/components/profile/EducationSection'
@@ -55,6 +57,99 @@ export default function CandidateProfile() {
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
 
+  const { user } = useProfile()
+  const isManager = user?.role === 'owner' || user?.role === 'admin'
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<OverviewDraft | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [showErrors, setShowErrors] = useState(false)
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([])
+
+  // Managers load all org members for the reassign select (any member can be an assignee, incl.
+  // the current one who may be an owner/admin). Inline-async + ignore flag so the effect body
+  // sets no state synchronously — satisfies react-hooks/set-state-in-effect.
+  useEffect(() => {
+    if (!isManager) return
+    let ignore = false
+    api
+      .get<Member[]>('/members')
+      .then((ms) => {
+        if (!ignore) setMembers(ms.map((m) => ({ id: m.id, name: m.name })))
+      })
+      .catch(() => {
+        if (!ignore) setMembers([])
+      })
+    return () => {
+      ignore = true
+    }
+  }, [isManager])
+
+  const errors = useMemo(() => {
+    const e: { name?: string; title?: string } = {}
+    if (draft && !draft.name.trim()) e.name = 'Name is required'
+    if (draft && !draft.title.trim()) e.title = 'Title is required'
+    return e
+  }, [draft])
+
+  function startEdit() {
+    if (!detail) return
+    setDraft({
+      name: detail.name,
+      title: detail.title ?? '',
+      primary_skills: detail.primary_skills,
+      work_authorization: detail.work_authorization ?? '',
+      location: detail.location ?? '',
+      summary: detail.summary ?? '',
+      user_id: detail.recruiter_id,
+    })
+    setShowErrors(false)
+    setSaveError(null)
+    setEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditing(false)
+    setDraft(null)
+    setShowErrors(false)
+    setSaveError(null)
+  }
+
+  function updateDraft(patch: Partial<OverviewDraft>) {
+    setDraft((d) => (d ? { ...d, ...patch } : d))
+  }
+
+  async function save() {
+    if (!draft || !detail) return
+    if (!draft.name.trim() || !draft.title.trim()) {
+      setShowErrors(true)
+      return
+    }
+    setSaving(true)
+    setSaveError(null)
+    const payload: CandidateUpdate = {
+      name: draft.name.trim(),
+      title: draft.title.trim(),
+      primary_skills: draft.primary_skills,
+      work_authorization: draft.work_authorization || null,
+      location: draft.location.trim() || null,
+      summary: draft.summary.trim() || null,
+    }
+    if (isManager && draft.user_id && draft.user_id !== detail.recruiter_id) {
+      payload.user_id = draft.user_id
+    }
+    try {
+      const updated = await api.patch<CandidateDetail>(`/candidates/${detail.id}`, payload)
+      setDetail(updated)
+      setEditing(false)
+      setDraft(null)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not save changes')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   useEffect(() => {
     if (!id) return
     let ignore = false
@@ -87,8 +182,8 @@ export default function CandidateProfile() {
     setStatusUpdating(true)
     setDetail((d) => (d ? { ...d, status: next } : d))
     try {
-      const updated = await api.patch<CandidateCard>(`/candidates/${detail.id}`, { status: next })
-      setDetail((d) => (d ? { ...d, status: updated.status } : d))
+      const updated = await api.patch<CandidateDetail>(`/candidates/${detail.id}`, { status: next })
+      setDetail(updated)
     } catch (e) {
       setDetail((d) => (d ? { ...d, status: prev } : d))
       setStatusError(e instanceof Error ? e.message : 'Could not update status')
@@ -100,12 +195,51 @@ export default function CandidateProfile() {
   return (
     <AppLayout active="candidates">
       <div className="w-full max-w-[1140px] px-9 pt-[22px] pb-12">
-        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-          <Link to="/candidates" className="hover:text-foreground">
-            Candidates
-          </Link>
-          <span className="text-[#d4d4d8]">/</span>
-          <span className="text-foreground">{detail?.name ?? '…'}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <Link to="/candidates" className="hover:text-foreground">
+              Candidates
+            </Link>
+            <span className="text-[#d4d4d8]">/</span>
+            <span className="text-foreground">{detail?.name ?? '…'}</span>
+            {editing && (
+              <span className="ml-1 rounded-[5px] border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-[#b45309]">
+                EDITING
+              </span>
+            )}
+          </div>
+          {detail && !loading && !error && (
+            <div className="flex items-center gap-2">
+              {editing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={saving}
+                    className="rounded-[9px] border border-input bg-card px-3.5 py-1.5 text-[13px] hover:bg-[#f4f4f5] disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={save}
+                    disabled={saving}
+                    className="rounded-[9px] bg-brand px-3.5 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-50"
+                  >
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="rounded-[9px] border border-input bg-card px-3.5 py-1.5 text-[13px] hover:bg-[#f4f4f5]"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {loading && <p className="mt-6 text-[13px] text-muted-foreground">Loading…</p>}
@@ -124,6 +258,7 @@ export default function CandidateProfile() {
 
         {detail && !loading && !error && (
           <>
+            {!editing && (
             <div className="mt-5 flex items-start gap-4">
               <div className="flex size-14 flex-none items-center justify-center rounded-full border border-[#e9e9ec] bg-[#f4f4f5] text-[17px] font-semibold text-[#52525b]">
                 {initialsOf(detail.name)}
@@ -150,6 +285,21 @@ export default function CandidateProfile() {
                 {statusError && <span className="text-[11.5px] text-destructive">{statusError}</span>}
               </div>
             </div>
+            )}
+
+            {editing && draft && (
+              <div className="mt-5">
+                <OverviewEditor
+                  draft={draft}
+                  update={updateDraft}
+                  years={detail.years_experience}
+                  isManager={isManager}
+                  members={members}
+                  errors={showErrors ? errors : {}}
+                />
+                {saveError && <p className="mt-3 text-[13px] text-destructive">{saveError}</p>}
+              </div>
+            )}
 
             <nav className="mt-6 flex flex-wrap gap-1 border-b border-border pb-3">
               {NAV.map((n) => (
@@ -164,6 +314,7 @@ export default function CandidateProfile() {
             </nav>
 
             <div className="mt-6 flex flex-col gap-7">
+              {!editing && (
               <Section id="summary" title="Summary">
                 {detail.summary ? (
                   <p className="text-[13.5px] leading-relaxed whitespace-pre-line text-[#3f3f46]">
@@ -186,6 +337,7 @@ export default function CandidateProfile() {
                 )}
                 <ProfileLinks detail={detail} />
               </Section>
+              )}
 
               <Section id="experience" title="Experience">
                 <ExperienceSection items={detail.experience} />
