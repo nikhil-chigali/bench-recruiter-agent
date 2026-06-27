@@ -403,6 +403,45 @@ async def test_patch_invalid_work_auth_returns_422(monkeypatch):
         app.dependency_overrides.clear()
 
 
+async def test_patch_ignores_unknown_fields(monkeypatch):
+    # CandidateUpdate (Pydantic default extra="ignore") drops unknown keys, so identity/derived
+    # columns sent by a client never reach the repository's setattr loop.
+    captured = {}
+
+    async def fake_get_candidate(session, candidate_id, org_id):
+        return _candidate(ACTOR)
+
+    async def fake_update(session, candidate, changes):
+        captured["changes"] = changes
+        for k, v in changes.items():
+            setattr(candidate, k, v)
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate", fake_get_candidate)
+    monkeypatch.setattr(repositories, "update_candidate", fake_update)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.patch(
+                f"/candidates/{CAND}",
+                json={
+                    "status": "placed",
+                    "org_id": str(uuid.uuid4()),
+                    "years_experience": 99,
+                    "id": str(uuid.uuid4()),
+                },
+            )
+        assert resp.status_code == 200
+        assert captured["changes"] == {"status": "placed"}  # unknown keys dropped, never written
+    finally:
+        app.dependency_overrides.clear()
+
+
 def _detailed_candidate(owner_id: uuid.UUID) -> Candidate:
     cand = _candidate(owner_id)
     cand.email = "arjun@example.com"

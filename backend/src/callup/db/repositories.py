@@ -285,6 +285,9 @@ async def update_candidate(session: AsyncSession, candidate: Candidate, changes:
     """
     candidate_id = candidate.id
     org_id = candidate.org_id
+    # The blind setattr loop is safe ONLY because ``changes`` is the dump of a CandidateUpdate,
+    # whose Pydantic v2 default (extra="ignore") drops unknown keys — so identity/derived columns
+    # (id, org_id, years_experience, …) never reach here. Do not feed this raw client input.
     for field, value in changes.items():
         setattr(candidate, field, value)
     await session.commit()
