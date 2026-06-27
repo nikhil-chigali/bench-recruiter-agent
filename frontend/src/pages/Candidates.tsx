@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
 import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
+import { clearDraft, hasDraft } from '@/lib/candidateDraft'
 import type { CandidateCard as Candidate, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
 import CandidateCard from '@/components/CandidateCard'
@@ -33,6 +34,7 @@ export default function Candidates() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerError, setDrawerError] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [draftPresent, setDraftPresent] = useState(hasDraft)
   const navigate = useNavigate()
 
   function openCandidate(c: Candidate) {
@@ -176,6 +178,30 @@ export default function Candidates() {
   return (
     <AppLayout active="candidates">
       <div className="w-full max-w-[1140px] px-9 pt-[26px]">
+        {draftPresent && (
+          <div className="mb-4 flex items-center justify-between rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-4 py-2.5 text-[13px]">
+            <span className="text-[#92400e]">You have an unsaved candidate draft.</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/candidates/new')}
+                className="font-medium text-[#5b46e0] hover:underline"
+              >
+                Resume
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearDraft()
+                  setDraftPresent(false)
+                }}
+                className="text-muted-foreground hover:underline"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
             <h1 className="text-[22px] font-semibold tracking-[-0.015em]">Candidates</h1>
@@ -183,14 +209,23 @@ export default function Candidates() {
               {isManager ? 'Your bench across the team.' : 'Your bench — candidates assigned to you.'}
             </p>
           </div>
-          <div className="relative flex items-center">
-            <span className="pointer-events-none absolute left-3 text-[13px] text-[#a1a1aa]">⌕</span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or skill…"
-              className="h-[38px] w-[230px] rounded-[9px] border border-input bg-card pr-3 pl-[30px] text-[13.5px]"
-            />
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3 text-[13px] text-[#a1a1aa]">⌕</span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or skill…"
+                className="h-[38px] w-[230px] rounded-[9px] border border-input bg-card pr-3 pl-[30px] text-[13.5px]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/candidates/new')}
+              className="h-[38px] rounded-[9px] bg-brand px-4 text-[13px] font-medium text-white hover:opacity-90"
+            >
+              + Add candidate
+            </button>
           </div>
         </div>
 
