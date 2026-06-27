@@ -137,6 +137,28 @@
             "title": "Experience",
             "type": "array"
           },
+          "github_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Url"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
           "location": {
             "anyOf": [
               {
@@ -163,6 +185,17 @@
             ],
             "title": "Phone"
           },
+          "portfolio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Portfolio Url"
+          },
           "primary_skills": {
             "items": {
               "type": "string"
@@ -176,6 +209,17 @@
             },
             "title": "Projects",
             "type": "array"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
           },
           "title": {
             "title": "Title",

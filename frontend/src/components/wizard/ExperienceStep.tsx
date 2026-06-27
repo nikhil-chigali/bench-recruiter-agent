@@ -1,7 +1,16 @@
 import type { CandidateDraft, ExperienceDraft } from '@/lib/candidateDraft'
 import { Field, inputClass } from '@/components/wizard/Field'
+import StringListEditor from '@/components/profile/StringListEditor'
+import SkillsChipEditor from '@/components/SkillsChipEditor'
 
-const EMPTY: ExperienceDraft = { company: '', position: '', start_date: '', end_date: '' }
+const EMPTY: ExperienceDraft = {
+  company: '',
+  position: '',
+  start_date: '',
+  end_date: '',
+  description: [],
+  tech_stack: [],
+}
 
 export default function ExperienceStep({
   draft,
@@ -31,6 +40,16 @@ export default function ExperienceStep({
             </Field>
             <Field label="End (leave blank if current)">
               <input className={inputClass} type="month" value={r.end_date} onChange={(e) => set(i, { end_date: e.target.value })} />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Highlights">
+              <StringListEditor items={r.description} onChange={(d) => set(i, { description: d })} placeholder="Achievement or responsibility" />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Tech stack">
+              <SkillsChipEditor skills={r.tech_stack} onChange={(t) => set(i, { tech_stack: t })} />
             </Field>
           </div>
           <button

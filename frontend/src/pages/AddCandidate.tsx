@@ -6,6 +6,7 @@ import { monthInputToIso } from '@/lib/dates'
 import type { CandidateCreate, CandidateDetail, Member } from '@callup/shared-types'
 import { EMPTY_DRAFT, clearDraft, loadDraft, saveDraft, type CandidateDraft } from '@/lib/candidateDraft'
 import AppLayout from '@/components/AppLayout'
+import { Button } from '@/components/ui/button'
 import WizardStepper from '@/components/wizard/WizardStepper'
 import BasicsStep from '@/components/wizard/BasicsStep'
 import ExperienceStep from '@/components/wizard/ExperienceStep'
@@ -32,6 +33,10 @@ function toPayload(d: CandidateDraft, isManager: boolean): CandidateCreate {
     location: d.location || null,
     email: d.email || null,
     phone: d.phone || null,
+    linkedin_url: d.linkedin_url || null,
+    github_url: d.github_url || null,
+    portfolio_url: d.portfolio_url || null,
+    summary: d.summary || null,
     user_id: isManager && d.user_id ? d.user_id : null,
     experience: d.experience
       .filter((e) => e.company.trim())
@@ -40,20 +45,38 @@ function toPayload(d: CandidateDraft, isManager: boolean): CandidateCreate {
         position: e.position.trim() || null,
         start_date: monthInputToIso(e.start_date),
         end_date: monthInputToIso(e.end_date),
+        description: e.description,
+        tech_stack: e.tech_stack,
       })),
     education: d.education
       .filter((e) => e.university.trim())
-      .map((e) => ({ university: e.university.trim(), degree: e.degree.trim() || null })),
+      .map((e) => ({
+        university: e.university.trim(),
+        degree: e.degree.trim() || null,
+        location: e.location.trim() || null,
+        cgpa: e.cgpa.trim() ? Number(e.cgpa) : null,
+        coursework: e.coursework.trim() || null,
+        start_date: monthInputToIso(e.start_date),
+        end_date: monthInputToIso(e.end_date),
+      })),
     projects: d.projects
       .filter((p) => p.title.trim())
       .map((p) => ({
         title: p.title.trim(),
         project_link: p.project_link.trim() || null,
         github_link: p.github_link.trim() || null,
+        description: p.description,
+        tech_stack: p.tech_stack,
       })),
     certifications: d.certifications
       .filter((c) => c.name.trim())
-      .map((c) => ({ name: c.name.trim(), issued_by: c.issued_by.trim() || null })),
+      .map((c) => ({
+        name: c.name.trim(),
+        issued_by: c.issued_by.trim() || null,
+        issued_on: monthInputToIso(c.issued_on),
+        badge_url: c.badge_url.trim() || null,
+        verification_url: c.verification_url.trim() || null,
+      })),
   }
 }
 
@@ -155,9 +178,9 @@ export default function AddCandidate() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[12px] text-[#a1a1aa]">Draft saved automatically</span>
-            <button type="button" onClick={saveAndExit} className="text-[13px] text-[#5b46e0] hover:underline">
+            <Button type="button" variant="outline" size="sm" onClick={saveAndExit}>
               Save &amp; exit
-            </button>
+            </Button>
           </div>
         </div>
 

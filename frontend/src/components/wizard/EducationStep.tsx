@@ -1,7 +1,15 @@
 import type { CandidateDraft, EducationDraft } from '@/lib/candidateDraft'
 import { Field, inputClass } from '@/components/wizard/Field'
 
-const EMPTY: EducationDraft = { university: '', degree: '' }
+const EMPTY: EducationDraft = {
+  university: '',
+  degree: '',
+  location: '',
+  cgpa: '',
+  coursework: '',
+  start_date: '',
+  end_date: '',
+}
 
 export default function EducationStep({
   draft,
@@ -30,6 +38,23 @@ export default function EducationStep({
                 onChange={(e) => set(i, { degree: e.target.value })}
                 placeholder="BS Computer Science"
               />
+            </Field>
+            <Field label="Location">
+              <input className={inputClass} value={r.location} onChange={(e) => set(i, { location: e.target.value })} />
+            </Field>
+            <Field label="CGPA">
+              <input className={inputClass} type="number" step="0.01" value={r.cgpa} onChange={(e) => set(i, { cgpa: e.target.value })} />
+            </Field>
+            <Field label="Start">
+              <input className={inputClass} type="month" value={r.start_date} onChange={(e) => set(i, { start_date: e.target.value })} />
+            </Field>
+            <Field label="End">
+              <input className={inputClass} type="month" value={r.end_date} onChange={(e) => set(i, { end_date: e.target.value })} />
+            </Field>
+          </div>
+          <div className="mt-3">
+            <Field label="Coursework">
+              <input className={inputClass} value={r.coursework} onChange={(e) => set(i, { coursework: e.target.value })} />
             </Field>
           </div>
           <button

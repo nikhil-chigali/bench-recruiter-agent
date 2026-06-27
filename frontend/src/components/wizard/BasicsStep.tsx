@@ -68,6 +68,27 @@ export default function BasicsStep({
           <input className={inputClass} value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
         </Field>
       </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="LinkedIn URL">
+          <input className={inputClass} value={draft.linkedin_url} onChange={(e) => update({ linkedin_url: e.target.value })} />
+        </Field>
+        <Field label="GitHub URL">
+          <input className={inputClass} value={draft.github_url} onChange={(e) => update({ github_url: e.target.value })} />
+        </Field>
+        <Field label="Portfolio URL">
+          <input className={inputClass} value={draft.portfolio_url} onChange={(e) => update({ portfolio_url: e.target.value })} />
+        </Field>
+      </div>
+
+      <Field label="Summary">
+        <textarea
+          className="min-h-[88px] w-full resize-y rounded-[9px] border border-input bg-card px-3 py-2 text-[13.5px] outline-none focus:border-[#a5b4fc]"
+          value={draft.summary}
+          onChange={(e) => update({ summary: e.target.value })}
+          placeholder="Short professional summary"
+        />
+      </Field>
     </div>
   )
 }

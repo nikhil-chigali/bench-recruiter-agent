@@ -247,6 +247,10 @@ class CandidateCreate(BaseModel):
     location: str | None = None
     email: str | None = None
     phone: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
+    portfolio_url: str | None = None
+    summary: str | None = None
     user_id: uuid.UUID | None = None
     experience: list[ExperienceIn] = Field(default_factory=list)
     education: list[EducationIn] = Field(default_factory=list)
@@ -263,7 +267,9 @@ class CandidateCreate(BaseModel):
             raise ValueError("must be at most 200 characters")
         return v
 
-    @field_validator("location", "email", "phone")
+    @field_validator(
+        "location", "email", "phone", "linkedin_url", "github_url", "portfolio_url", "summary"
+    )
     @classmethod
     def _blank_to_none(cls, v: str | None) -> str | None:
         if v is None:

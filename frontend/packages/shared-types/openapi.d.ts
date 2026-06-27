@@ -347,16 +347,24 @@ export interface components {
             email?: string | null;
             /** Experience */
             experience?: components["schemas"]["ExperienceIn"][];
+            /** Github Url */
+            github_url?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
             /** Location */
             location?: string | null;
             /** Name */
             name: string;
             /** Phone */
             phone?: string | null;
+            /** Portfolio Url */
+            portfolio_url?: string | null;
             /** Primary Skills */
             primary_skills?: string[];
             /** Projects */
             projects?: components["schemas"]["ProjectIn"][];
+            /** Summary */
+            summary?: string | null;
             /** Title */
             title: string;
             /** User Id */

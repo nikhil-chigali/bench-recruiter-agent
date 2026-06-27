@@ -325,6 +325,10 @@ async def create_candidate(
         location=data.location,
         email=data.email,
         phone=data.phone,
+        linkedin_url=data.linkedin_url,
+        github_url=data.github_url,
+        portfolio_url=data.portfolio_url,
+        summary=data.summary,
         experience=[
             CandidateExperience(
                 org_id=org_id,

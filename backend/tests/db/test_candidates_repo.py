@@ -50,6 +50,10 @@ async def test_create_candidate_persists_graph_and_reloads_detail():
             location="Austin, TX",
             email="cand@example.com",
             phone="555-0100",
+            linkedin_url="https://linkedin.com/in/newcand",
+            github_url="https://github.com/newcand",
+            portfolio_url="https://newcand.dev",
+            summary="Senior engineer with a decade of backend experience.",
             experience=[
                 ExperienceIn(
                     company="Acme",
@@ -78,6 +82,10 @@ async def test_create_candidate_persists_graph_and_reloads_detail():
             assert detail.title == "Senior Engineer"
             assert detail.primary_skills == ["Go", "Rust"]
             assert detail.work_authorization == "USC"
+            assert detail.linkedin_url == "https://linkedin.com/in/newcand"
+            assert detail.github_url == "https://github.com/newcand"
+            assert detail.portfolio_url == "https://newcand.dev"
+            assert detail.summary == "Senior engineer with a decade of backend experience."
 
             assert len(detail.experience) == 1
             assert detail.experience[0].company == "Acme"

@@ -726,6 +726,43 @@ async def test_create_persists_children(monkeypatch):
         app.dependency_overrides.clear()
 
 
+async def test_create_persists_profile_urls_and_summary(monkeypatch):
+    captured = {}
+
+    async def fake_create(session, org_id, user_id, data):
+        captured["data"] = data
+        return _detailed_candidate(user_id)
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "create_candidate", fake_create)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                "/candidates",
+                json={
+                    "name": "X",
+                    "title": "Y",
+                    "linkedin_url": "https://linkedin.com/in/x",
+                    "github_url": "https://github.com/x",
+                    "portfolio_url": "   ",  # blank → None
+                    "summary": "  Senior backend engineer.  ",
+                },
+            )
+        assert resp.status_code == 201
+        data = captured["data"]
+        assert data.linkedin_url == "https://linkedin.com/in/x"
+        assert data.github_url == "https://github.com/x"
+        assert data.portfolio_url is None  # blank stripped to None
+        assert data.summary == "Senior backend engineer."  # trimmed
+    finally:
+        app.dependency_overrides.clear()
+
+
 async def test_create_requires_title_returns_422(monkeypatch):
     app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
     app.dependency_overrides[get_session] = lambda: _Session()

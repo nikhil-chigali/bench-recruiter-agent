@@ -1,8 +1,10 @@
 import type { CandidateDraft, ProjectDraft, CertificationDraft } from '@/lib/candidateDraft'
 import { Field, inputClass } from '@/components/wizard/Field'
+import StringListEditor from '@/components/profile/StringListEditor'
+import SkillsChipEditor from '@/components/SkillsChipEditor'
 
-const EMPTY_PROJECT: ProjectDraft = { title: '', project_link: '', github_link: '' }
-const EMPTY_CERT: CertificationDraft = { name: '', issued_by: '' }
+const EMPTY_PROJECT: ProjectDraft = { title: '', project_link: '', github_link: '', description: [], tech_stack: [] }
+const EMPTY_CERT: CertificationDraft = { name: '', issued_by: '', issued_on: '', badge_url: '', verification_url: '' }
 
 export default function ProjectsCertsStep({
   draft,
@@ -37,6 +39,16 @@ export default function ProjectsCertsStep({
                 <input className={inputClass} value={r.github_link} onChange={(e) => setP(i, { github_link: e.target.value })} />
               </Field>
             </div>
+            <div className="mt-3">
+              <Field label="Highlights">
+                <StringListEditor items={r.description} onChange={(d) => setP(i, { description: d })} placeholder="What it does / your role" />
+              </Field>
+            </div>
+            <div className="mt-3">
+              <Field label="Tech stack">
+                <SkillsChipEditor skills={r.tech_stack} onChange={(t) => setP(i, { tech_stack: t })} />
+              </Field>
+            </div>
             <button
               type="button"
               onClick={() => update({ projects: projects.filter((_, j) => j !== i) })}
@@ -66,6 +78,15 @@ export default function ProjectsCertsStep({
               </Field>
               <Field label="Issued by">
                 <input className={inputClass} value={r.issued_by} onChange={(e) => setC(i, { issued_by: e.target.value })} />
+              </Field>
+              <Field label="Issued on">
+                <input className={inputClass} type="month" value={r.issued_on} onChange={(e) => setC(i, { issued_on: e.target.value })} />
+              </Field>
+              <Field label="Badge URL">
+                <input className={inputClass} value={r.badge_url} onChange={(e) => setC(i, { badge_url: e.target.value })} />
+              </Field>
+              <Field label="Verification URL">
+                <input className={inputClass} value={r.verification_url} onChange={(e) => setC(i, { verification_url: e.target.value })} />
               </Field>
             </div>
             <button
