@@ -16,3 +16,13 @@ export function formatRange(
   if (!s && (!end || !e)) return ''
   return `${s || '—'} – ${e}`
 }
+
+// <input type="month"> gives "YYYY-MM"; the API wants a date, so anchor to the first of the month.
+export function monthInputToIso(m: string): string | null {
+  return m ? `${m}-01` : null
+}
+
+// An ISO date ("YYYY-MM-DD" or null) → the "YYYY-MM" value an <input type="month"> expects.
+export function isoToMonthInput(iso: string | null): string {
+  return iso ? iso.slice(0, 7) : ''
+}

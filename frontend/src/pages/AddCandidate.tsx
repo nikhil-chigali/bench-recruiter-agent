@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
+import { monthInputToIso } from '@/lib/dates'
 import type { CandidateCreate, CandidateDetail, Member } from '@callup/shared-types'
 import { EMPTY_DRAFT, clearDraft, loadDraft, saveDraft, type CandidateDraft } from '@/lib/candidateDraft'
 import AppLayout from '@/components/AppLayout'
@@ -22,11 +23,6 @@ const STEPS = [
   { key: 'review', label: 'Review & create' },
 ]
 
-// <input type="month"> gives "YYYY-MM"; the API wants a date, so anchor to the first of the month.
-function monthToDate(m: string): string | null {
-  return m ? `${m}-01` : null
-}
-
 function toPayload(d: CandidateDraft, isManager: boolean): CandidateCreate {
   return {
     name: d.name.trim(),
@@ -42,8 +38,8 @@ function toPayload(d: CandidateDraft, isManager: boolean): CandidateCreate {
       .map((e) => ({
         company: e.company.trim(),
         position: e.position.trim() || null,
-        start_date: monthToDate(e.start_date),
-        end_date: monthToDate(e.end_date),
+        start_date: monthInputToIso(e.start_date),
+        end_date: monthInputToIso(e.end_date),
       })),
     education: d.education
       .filter((e) => e.university.trim())
