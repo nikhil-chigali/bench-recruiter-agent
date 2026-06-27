@@ -783,3 +783,237 @@ async def test_owner_with_no_assignee_defaults_to_self(monkeypatch):
         assert captured["user_id"] == ACTOR  # no body user_id → owner assigned to self
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_replace_experience_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_replace(session, candidate, items):
+        captured["items"] = items
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_experience", fake_replace)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(
+                f"/candidates/{CAND}/experience",
+                json=[
+                    {
+                        "company": "Acme",
+                        "position": "Dev",
+                        "start_date": "2020-01-01",
+                        "end_date": "2022-01-01",
+                        "description": ["Built X", "  "],
+                        "tech_stack": ["Go", " ", "Rust"],
+                    }
+                ],
+            )
+        assert resp.status_code == 200
+        items = captured["items"]
+        assert len(items) == 1
+        assert items[0].company == "Acme"
+        assert items[0].description == ["Built X"]  # blanks dropped
+        assert items[0].tech_stack == ["Go", "Rust"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_education_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_replace(session, candidate, items):
+        captured["items"] = items
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_education", fake_replace)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(
+                f"/candidates/{CAND}/education",
+                json=[{"university": "MIT", "degree": "BS", "cgpa": 3.9, "location": "MA"}],
+            )
+        assert resp.status_code == 200
+        assert captured["items"][0].university == "MIT"
+        assert captured["items"][0].cgpa == 3.9
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_projects_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_replace(session, candidate, items):
+        captured["items"] = items
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_projects", fake_replace)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(
+                f"/candidates/{CAND}/projects",
+                json=[{"title": "P1", "github_link": "https://gh/p1", "tech_stack": ["Go"]}],
+            )
+        assert resp.status_code == 200
+        assert captured["items"][0].title == "P1"
+        assert captured["items"][0].tech_stack == ["Go"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_certifications_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_replace(session, candidate, items):
+        captured["items"] = items
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_certifications", fake_replace)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(
+                f"/candidates/{CAND}/certifications",
+                json=[{"name": "AWS SAA", "issued_by": "Amazon", "issued_on": "2023-05-01"}],
+            )
+        assert resp.status_code == 200
+        assert captured["items"][0].name == "AWS SAA"
+        assert captured["items"][0].issued_on == date(2023, 5, 1)
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_section_empty_list_clears(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_replace(session, candidate, items):
+        captured["items"] = items
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_experience", fake_replace)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(f"/candidates/{CAND}/experience", json=[])
+        assert resp.status_code == 200
+        assert captured["items"] == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_recruiter_cannot_edit_others_children(monkeypatch):
+    called = {"replaced": False}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(OTHER)  # another recruiter's candidate
+
+    async def fake_replace(session, candidate, items):
+        called["replaced"] = True
+        return candidate
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "replace_experience", fake_replace)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(f"/candidates/{CAND}/experience", json=[])
+        assert resp.status_code == 403
+        assert called["replaced"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_cross_org_candidate_returns_404(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return None  # org-scoped fetch misses → not in this org
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(f"/candidates/{CAND}/projects", json=[])
+        assert resp.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_experience_missing_company_returns_422(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(f"/candidates/{CAND}/experience", json=[{"position": "Dev"}])
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_replace_experience_bad_dates_returns_422(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.put(
+                f"/candidates/{CAND}/experience",
+                json=[{"company": "Acme", "start_date": "2022-01-01", "end_date": "2020-01-01"}],
+            )
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()

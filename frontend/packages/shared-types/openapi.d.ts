@@ -40,6 +40,74 @@ export interface paths {
         patch: operations["update_candidate_candidates__candidate_id__patch"];
         trace?: never;
     };
+    "/candidates/{candidate_id}/certifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Certifications */
+        put: operations["replace_certifications_candidates__candidate_id__certifications_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{candidate_id}/education": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Education */
+        put: operations["replace_education_candidates__candidate_id__education_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{candidate_id}/experience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Experience */
+        put: operations["replace_experience_candidates__candidate_id__experience_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{candidate_id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Projects */
+        put: operations["replace_projects_candidates__candidate_id__projects_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -370,10 +438,16 @@ export interface components {
         };
         /** CertificationIn */
         CertificationIn: {
+            /** Badge Url */
+            badge_url?: string | null;
             /** Issued By */
             issued_by?: string | null;
+            /** Issued On */
+            issued_on?: string | null;
             /** Name */
             name: string;
+            /** Verification Url */
+            verification_url?: string | null;
         };
         /** CertificationOut */
         CertificationOut: {
@@ -395,8 +469,18 @@ export interface components {
         };
         /** EducationIn */
         EducationIn: {
+            /** Cgpa */
+            cgpa?: number | null;
+            /** Coursework */
+            coursework?: string | null;
             /** Degree */
             degree?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Start Date */
+            start_date?: string | null;
             /** University */
             university: string;
         };
@@ -426,12 +510,16 @@ export interface components {
         ExperienceIn: {
             /** Company */
             company: string;
+            /** Description */
+            description?: string[] | null;
             /** End Date */
             end_date?: string | null;
             /** Position */
             position?: string | null;
             /** Start Date */
             start_date?: string | null;
+            /** Tech Stack */
+            tech_stack?: string[] | null;
         };
         /** ExperienceOut */
         ExperienceOut: {
@@ -547,10 +635,14 @@ export interface components {
         };
         /** ProjectIn */
         ProjectIn: {
+            /** Description */
+            description?: string[] | null;
             /** Github Link */
             github_link?: string | null;
             /** Project Link */
             project_link?: string | null;
+            /** Tech Stack */
+            tech_stack?: string[] | null;
             /** Title */
             title: string;
         };
@@ -724,6 +816,146 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CandidateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_certifications_candidates__candidate_id__certifications_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CertificationIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_education_candidates__candidate_id__education_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EducationIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_experience_candidates__candidate_id__experience_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExperienceIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_projects_candidates__candidate_id__projects_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectIn"][];
             };
         };
         responses: {

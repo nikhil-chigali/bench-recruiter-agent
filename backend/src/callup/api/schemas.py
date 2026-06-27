@@ -120,11 +120,19 @@ class CandidateDetail(BaseModel):
     certifications: list[CertificationOut]
 
 
+def _clean_str_list(v: list[str] | None) -> list[str] | None:
+    if v is None:
+        return None
+    return [s.strip() for s in v if s and s.strip()]
+
+
 class ExperienceIn(BaseModel):
     company: str
     position: str | None = None
     start_date: _dt.date | None = None
     end_date: _dt.date | None = None
+    description: list[str] | None = None
+    tech_stack: list[str] | None = None
 
     @field_validator("company")
     @classmethod
@@ -133,6 +141,11 @@ class ExperienceIn(BaseModel):
         if not v:
             raise ValueError("company is required")
         return v
+
+    @field_validator("description", "tech_stack")
+    @classmethod
+    def _lists(cls, v: list[str] | None) -> list[str] | None:
+        return _clean_str_list(v)
 
     @model_validator(mode="after")
     def _dates(self) -> "ExperienceIn":
@@ -144,6 +157,11 @@ class ExperienceIn(BaseModel):
 class EducationIn(BaseModel):
     university: str
     degree: str | None = None
+    location: str | None = None
+    cgpa: float | None = None
+    coursework: str | None = None
+    start_date: _dt.date | None = None
+    end_date: _dt.date | None = None
 
     @field_validator("university")
     @classmethod
@@ -153,11 +171,27 @@ class EducationIn(BaseModel):
             raise ValueError("university is required")
         return v
 
+    @field_validator("degree", "location", "coursework")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @model_validator(mode="after")
+    def _dates(self) -> "EducationIn":
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError("end_date must be on or after start_date")
+        return self
+
 
 class ProjectIn(BaseModel):
     title: str
     project_link: str | None = None
     github_link: str | None = None
+    description: list[str] | None = None
+    tech_stack: list[str] | None = None
 
     @field_validator("title")
     @classmethod
@@ -167,10 +201,26 @@ class ProjectIn(BaseModel):
             raise ValueError("title is required")
         return v
 
+    @field_validator("project_link", "github_link")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @field_validator("description", "tech_stack")
+    @classmethod
+    def _lists(cls, v: list[str] | None) -> list[str] | None:
+        return _clean_str_list(v)
+
 
 class CertificationIn(BaseModel):
     name: str
     issued_by: str | None = None
+    badge_url: str | None = None
+    issued_on: _dt.date | None = None
+    verification_url: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -179,6 +229,14 @@ class CertificationIn(BaseModel):
         if not v:
             raise ValueError("name is required")
         return v
+
+    @field_validator("issued_by", "badge_url", "verification_url")
+    @classmethod
+    def _blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class CandidateCreate(BaseModel):

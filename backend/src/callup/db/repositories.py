@@ -27,9 +27,15 @@ from callup.db.models import (
 )
 
 if TYPE_CHECKING:
-    # Type-only import: the API request model is read for its attributes here, but the
+    # Type-only import: the API request models are read for their attributes here, but the
     # db layer must not import the api layer at runtime (one-directional dependency).
-    from callup.api.schemas import CandidateCreate
+    from callup.api.schemas import (
+        CandidateCreate,
+        CertificationIn,
+        EducationIn,
+        ExperienceIn,
+        ProjectIn,
+    )
 
 
 async def get_user(session: AsyncSession, user_id: uuid.UUID) -> User | None:
@@ -326,11 +332,22 @@ async def create_candidate(
                 position=e.position,
                 start_date=e.start_date,
                 end_date=e.end_date,
+                description=e.description,
+                tech_stack=e.tech_stack,
             )
             for e in data.experience
         ],
         education=[
-            CandidateEducation(org_id=org_id, university=ed.university, degree=ed.degree)
+            CandidateEducation(
+                org_id=org_id,
+                university=ed.university,
+                degree=ed.degree,
+                location=ed.location,
+                cgpa=ed.cgpa,
+                coursework=ed.coursework,
+                start_date=ed.start_date,
+                end_date=ed.end_date,
+            )
             for ed in data.education
         ],
         projects=[
@@ -339,11 +356,20 @@ async def create_candidate(
                 title=p.title,
                 project_link=p.project_link,
                 github_link=p.github_link,
+                description=p.description,
+                tech_stack=p.tech_stack,
             )
             for p in data.projects
         ],
         certifications=[
-            CandidateCertification(org_id=org_id, name=ct.name, issued_by=ct.issued_by)
+            CandidateCertification(
+                org_id=org_id,
+                name=ct.name,
+                issued_by=ct.issued_by,
+                badge_url=ct.badge_url,
+                issued_on=ct.issued_on,
+                verification_url=ct.verification_url,
+            )
             for ct in data.certifications
         ],
     )
@@ -353,4 +379,103 @@ async def create_candidate(
     await session.commit()
     refreshed = await get_candidate_detail(session, candidate_id, org_id)
     assert refreshed is not None  # just created within this transaction
+    return refreshed
+
+
+async def replace_experience(
+    session: AsyncSession, candidate: Candidate, items: "list[ExperienceIn]"
+) -> Candidate:
+    """Replace all of a candidate's experience rows with ``items`` in one transaction.
+
+    Reassigning the collection lets the ``delete-orphan`` cascade remove the old rows; the PK is
+    captured before commit so the post-commit re-fetch (eager) is not an illegal async lazy load.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.experience = [
+        CandidateExperience(
+            org_id=org_id,
+            company=e.company,
+            position=e.position,
+            start_date=e.start_date,
+            end_date=e.end_date,
+            description=e.description,
+            tech_stack=e.tech_stack,
+        )
+        for e in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_education(
+    session: AsyncSession, candidate: Candidate, items: "list[EducationIn]"
+) -> Candidate:
+    """Replace all of a candidate's education rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.education = [
+        CandidateEducation(
+            org_id=org_id,
+            university=ed.university,
+            degree=ed.degree,
+            location=ed.location,
+            cgpa=ed.cgpa,
+            coursework=ed.coursework,
+            start_date=ed.start_date,
+            end_date=ed.end_date,
+        )
+        for ed in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_projects(
+    session: AsyncSession, candidate: Candidate, items: "list[ProjectIn]"
+) -> Candidate:
+    """Replace all of a candidate's project rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.projects = [
+        CandidateProject(
+            org_id=org_id,
+            title=p.title,
+            project_link=p.project_link,
+            github_link=p.github_link,
+            description=p.description,
+            tech_stack=p.tech_stack,
+        )
+        for p in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_certifications(
+    session: AsyncSession, candidate: Candidate, items: "list[CertificationIn]"
+) -> Candidate:
+    """Replace all of a candidate's certification rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.certifications = [
+        CandidateCertification(
+            org_id=org_id,
+            name=ct.name,
+            issued_by=ct.issued_by,
+            badge_url=ct.badge_url,
+            issued_on=ct.issued_on,
+            verification_url=ct.verification_url,
+        )
+        for ct in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
     return refreshed

@@ -9,9 +9,13 @@ from callup.api.schemas import (
     CandidateCreate,
     CandidateDetail,
     CandidateUpdate,
+    CertificationIn,
     CertificationOut,
+    EducationIn,
     EducationOut,
+    ExperienceIn,
     ExperienceOut,
+    ProjectIn,
     ProjectOut,
 )
 from callup.db import repositories
@@ -178,5 +182,57 @@ async def update_candidate(
         if member is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "assignee is not a member of this org")
     updated = await repositories.update_candidate(session, candidate, changes)
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.put("/candidates/{candidate_id}/experience", response_model=CandidateDetail)
+async def replace_experience(
+    candidate_id: uuid.UUID, body: list[ExperienceIn], actor: CurrentUser, session: SessionDep
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    updated = await repositories.replace_experience(session, candidate, body)
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.put("/candidates/{candidate_id}/education", response_model=CandidateDetail)
+async def replace_education(
+    candidate_id: uuid.UUID, body: list[EducationIn], actor: CurrentUser, session: SessionDep
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    updated = await repositories.replace_education(session, candidate, body)
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.put("/candidates/{candidate_id}/projects", response_model=CandidateDetail)
+async def replace_projects(
+    candidate_id: uuid.UUID, body: list[ProjectIn], actor: CurrentUser, session: SessionDep
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    updated = await repositories.replace_projects(session, candidate, body)
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.put("/candidates/{candidate_id}/certifications", response_model=CandidateDetail)
+async def replace_certifications(
+    candidate_id: uuid.UUID, body: list[CertificationIn], actor: CurrentUser, session: SessionDep
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    updated = await repositories.replace_certifications(session, candidate, body)
     member = await repositories.get_member(session, updated.user_id, actor.org_id)
     return _detail(updated, member.name if member is not None else "—")
