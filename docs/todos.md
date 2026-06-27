@@ -72,7 +72,13 @@ Slice 4 is large, so it ships as chunks with their own plans under
   summary + `user_id` reassignment, owner/admin only and guarded), returning the full `CandidateDetail`;
   profile edit mode (Edit/Cancel/Save, `EDITING` badge, shared `SkillsChipEditor`, owner/admin "Assigned
   to" select). Both contract artifacts regenerated.
-- ⬜ Chunk 7 — child section editors; Chunk 8 — documents & storage.
+- ✅ **Chunk 7 — child section editors:** role-guarded section-replace endpoints
+  `PUT /candidates/:id/{experience|education|projects|certifications}` (each takes the full list and
+  replaces that section's rows in one transaction via the `delete-orphan` cascade, returning the full
+  `CandidateDetail`); the four `…In` schemas expanded to all editable fields (shared with the create
+  wizard); per-section profile editors (view ↔ edit, add/remove rows, Save/Cancel) reusing
+  `SkillsChipEditor` + a new `StringListEditor`. Both contract artifacts regenerated.
+- ⬜ Chunk 8 — documents & storage.
 
 ## Follow-ups (tech debt, not slice-blocking)
 
@@ -169,6 +175,13 @@ Carried out of completed slices; fold into a later slice when convenient.
   the full profile fetch lands. **Still open** — chunk 4 was read-only and didn't touch the
   drawer, so this wasn't addressed there; fold into a later chunk that reworks the roster/drawer
   (e.g. chunk 6 edit, or server-side filtering below). (Slice 4 — Candidates chunk 3.)
+- **Child-editor polish (chunk 7).** Two small deferred items from the chunk-7 final review:
+  (1) `EducationEditor` sends `cgpa: Number(r.cgpa)` — a non-numeric value becomes `NaN` → serialized to
+  `null` (silently dropped rather than flagged); mitigated today by the `<input type="number">`, but a
+  `Number.isNaN` guard would be stricter. (2) The section-replace validation/RBAC tests are
+  representative, not exhaustive — 403 is asserted on experience, 404 on projects, 422 on experience
+  only; a couple of parametrized cases would cover education/projects/certifications' required-key and
+  date-order validators (the guard/validator code is shared, so risk is low). (Slice 4 — Candidates chunk 7.)
 - **Reassign select is blank if `/members` fails to load.** On the profile edit mode
   (`CandidateProfile.tsx`), an owner/admin's "Assigned to" select is populated from `GET /members`;
   if that fetch fails the list is empty and the select renders blank. Verified safe — `draft.user_id`
