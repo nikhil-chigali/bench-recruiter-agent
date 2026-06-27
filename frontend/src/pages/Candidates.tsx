@@ -4,9 +4,10 @@ import { api } from '@/lib/api'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_BADGE, ROLE_LABEL } from '@/lib/utils'
 import { CANDIDATE_STATUS_ORDER, statusStyle } from '@/lib/candidateStatus'
-import { clearDraft, hasDraft } from '@/lib/candidateDraft'
+import { clearDraft, hasDraft, loadDraft } from '@/lib/candidateDraft'
 import type { CandidateCard as Candidate, CandidateDetail, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
+import { Button } from '@/components/ui/button'
 import CandidateCard from '@/components/CandidateCard'
 import CandidateDrawer from '@/components/CandidateDrawer'
 
@@ -35,6 +36,7 @@ export default function Candidates() {
   const [drawerError, setDrawerError] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [draftPresent, setDraftPresent] = useState(hasDraft)
+  const [draftName] = useState(() => loadDraft()?.name.trim() ?? '')
   const navigate = useNavigate()
 
   function openCandidate(c: Candidate) {
@@ -180,25 +182,30 @@ export default function Candidates() {
       <div className="w-full max-w-[1140px] px-9 pt-[26px]">
         {draftPresent && (
           <div className="mb-4 flex items-center justify-between rounded-[10px] border border-[#fde68a] bg-[#fffbeb] px-4 py-2.5 text-[13px]">
-            <span className="text-[#92400e]">You have an unsaved candidate draft.</span>
+            <span className="text-[#92400e]">
+              {draftName ? (
+                <>
+                  You have an unsaved draft for <span className="font-medium">{draftName}</span>.
+                </>
+              ) : (
+                'You have an unsaved candidate draft.'
+              )}
+            </span>
             <div className="flex items-center gap-3">
-              <button
+              <Button type="button" size="sm" onClick={() => navigate('/candidates/new')}>
+                Continue editing
+              </Button>
+              <Button
                 type="button"
-                onClick={() => navigate('/candidates/new')}
-                className="font-medium text-[#5b46e0] hover:underline"
-              >
-                Resume
-              </button>
-              <button
-                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   clearDraft()
                   setDraftPresent(false)
                 }}
-                className="text-muted-foreground hover:underline"
               >
                 Discard
-              </button>
+              </Button>
             </div>
           </div>
         )}
