@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { initialsOf } from '@/lib/utils'
 import { useProfile } from '@/lib/profile'
 import type { CandidateDetail, CandidateUpdate, Member } from '@callup/shared-types'
 import AppLayout from '@/components/AppLayout'
+import CandidateLoadError from '@/components/CandidateLoadError'
 import CandidateStatusChanger from '@/components/CandidateStatusChanger'
 import OverviewEditor, { type OverviewDraft } from '@/components/profile/OverviewEditor'
 import Section from '@/components/profile/Section'
@@ -50,10 +51,11 @@ function ProfileLinks({ detail }: { detail: CandidateDetail }) {
 
 export default function CandidateProfile() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [detail, setDetail] = useState<CandidateDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [errorStatus, setErrorStatus] = useState<number | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -160,9 +162,11 @@ export default function CandidateProfile() {
         if (!ignore) {
           setDetail(d)
           setError(null)
+          setErrorStatus(null)
         }
       } catch (e) {
         if (!ignore) {
+          setErrorStatus(e instanceof ApiError ? e.status : null)
           if (e instanceof ApiError && (e.status === 404 || e.status === 403))
             setError('Candidate not found.')
           else setError(e instanceof Error ? e.message : 'Failed to load candidate')
@@ -173,7 +177,9 @@ export default function CandidateProfile() {
     }
     void load()
     return () => { ignore = true }
-  }, [id])
+  }, [id, reloadKey])
+
+  const retry = () => setReloadKey((k) => k + 1)
 
   async function changeStatus(next: string) {
     if (!detail || next === detail.status || statusUpdating) return
@@ -201,13 +207,21 @@ export default function CandidateProfile() {
               Candidates
             </Link>
             <span className="text-[#d4d4d8]">/</span>
-            <span className="text-foreground">{detail?.name ?? '…'}</span>
+            <span className="text-foreground">{detail?.name ?? (error ? id : '…')}</span>
             {editing && (
               <span className="ml-1 rounded-[5px] border border-[#fde68a] bg-[#fffbeb] px-1.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-[#b45309]">
                 EDITING
               </span>
             )}
           </div>
+          {error && !loading && (
+            <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-[#ef4444]" />
+              {errorStatus === 404 || errorStatus === 403 || errorStatus === 422
+                ? 404
+                : (errorStatus || 'offline')}
+            </div>
+          )}
           {detail && !loading && !error && (
             <div className="flex items-center gap-2">
               {editing ? (
@@ -244,16 +258,13 @@ export default function CandidateProfile() {
 
         {loading && <p className="mt-6 text-[13px] text-muted-foreground">Loading…</p>}
         {error && !loading && (
-          <div className="mt-6">
-            <p className="text-[13px] text-destructive">{error}</p>
-            <button
-              type="button"
-              onClick={() => navigate('/candidates')}
-              className="mt-2 text-[13px] text-[#5b46e0] hover:underline"
-            >
-              ← Back to candidates
-            </button>
-          </div>
+          <CandidateLoadError
+            candidateId={id}
+            notFound={errorStatus === 404 || errorStatus === 403 || errorStatus === 422}
+            status={errorStatus}
+            message={error}
+            onRetry={retry}
+          />
         )}
 
         {detail && !loading && !error && (
