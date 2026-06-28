@@ -88,7 +88,7 @@ Slice 4 is large, so it ships as chunks with their own plans under
   stays plain; the unsaved-draft banner uses shadcn buttons and names the candidate; and a redesigned
   candidate **not-found / load-error** screen (`CandidateLoadError`) with a full-width header, a status
   indicator, the requested path, and a retry for non-404 failures.
-- ⬜ Chunk 8 — documents & storage.
+- ✅ **Chunk 8 — documents & storage:** backend Supabase Storage REST client + upload (multipart, 10 MB / PDF·Office·image validation, compliance-only `doc_type`) / download (signed URL, 300 s TTL) / delete endpoints; profile Documents section + wizard Documents step; private bucket, `{org_id}/{candidate_id}/{uuid}{ext}` path, `storage_path` never exposed in `DocumentOut`. Both contract artifacts regenerated.
 
 ## Follow-ups (tech debt, not slice-blocking)
 
