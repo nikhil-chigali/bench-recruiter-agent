@@ -94,6 +94,28 @@ Slice 4 is large, so it ships as chunks with their own plans under
 
 Carried out of completed slices; fold into a later slice when convenient.
 
+- **Document upload hardening (Chunk 8 final-review Minors, all MVP-acceptable).** From the
+  whole-branch review of Chunk 8 — none blocked merge:
+  - *Upload DoS angle.* `upload_document` does `await file.read()` (buffers the whole body) before
+    the 10 MB check. Add a `Content-Length` pre-read guard returning 413 before reading. Low risk
+    today (authenticated recruiters, small compliance docs).
+  - *Content-type is trusted from the client* — no magic-byte sniffing, so a mislabeled file passes
+    validation. Safe because the bucket is private and bytes are only served back via signed URL
+    (nothing executes server-side). Add a code comment noting the trust boundary; sniff if it ever matters.
+  - *Delete ordering.* `delete_document` route removes the storage object **then** the DB row; a row-delete
+    failure after object removal leaves a user-visible dangling row (Download fails). Reversing (row → object)
+    downgrades the failure to a harmless orphaned blob. (Design specified object→row, so this is a deliberate
+    change to weigh.)
+  - *Silent wizard upload failure.* `AddCandidate.create()` passes `navigate(..., { state: { uploadFailed }})`
+    but nothing on `CandidateProfile` reads it — a recruiter whose staged docs failed gets no signal beyond
+    the missing rows. Consider a one-line toast/banner consuming that state.
+  - *`SUPABASE_URL` not fail-fast.* `storage._client()` builds `f"{settings.supabase_url}/storage/v1"`; if unset
+    it becomes `"None/storage/v1"`. Add a guard symmetric to `supabase_service_key()`'s.
+  - *Test hygiene.* `tests/db/test_candidates_repo.py::test_add_and_delete_document` asserts
+    `doc.org_id == cand.org_id` against the post-commit (possibly expired) `cand`; compare against a captured
+    `org_id` local instead. Folds into the transaction-rollback fixture item below.
+  - *Starlette deprecation.* Swap `HTTP_413_REQUEST_ENTITY_TOO_LARGE` → `HTTP_413_CONTENT_TOO_LARGE` on the
+    next FastAPI/Starlette upgrade (benign on the current pin). (Slice 4 — Candidates chunk 8.)
 - **Integration test transaction-rollback fixture.** DB integration tests (e.g.
   `create_owned_org`) currently create rows in the live Supabase DB and clean up in
   a `finally` block — a failed assertion mid-test can orphan rows (it did once, leaving
