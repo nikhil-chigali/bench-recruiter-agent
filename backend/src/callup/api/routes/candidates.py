@@ -11,6 +11,7 @@ from callup.api.schemas import (
     CandidateUpdate,
     CertificationIn,
     CertificationOut,
+    DocumentOut,
     EducationIn,
     EducationOut,
     ExperienceIn,
@@ -126,6 +127,15 @@ def _detail(c: Candidate, recruiter_name: str) -> CandidateDetail:
                 verification_url=ct.verification_url,
             )
             for ct in c.certifications
+        ],
+        documents=[
+            DocumentOut(
+                id=d.id,
+                doc_type=d.doc_type,
+                filename=d.filename,
+                created_at=d.created_at,
+            )
+            for d in c.documents
         ],
     )
 

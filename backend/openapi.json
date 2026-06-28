@@ -265,6 +265,13 @@
             "title": "Certifications",
             "type": "array"
           },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentOut"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
           "education": {
             "items": {
               "$ref": "#/components/schemas/EducationOut"
@@ -439,7 +446,8 @@
           "experience",
           "education",
           "projects",
-          "certifications"
+          "certifications",
+          "documents"
         ],
         "title": "CandidateDetail",
         "type": "object"
@@ -667,6 +675,43 @@
           "verification_url"
         ],
         "title": "CertificationOut",
+        "type": "object"
+      },
+      "DocumentOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "doc_type": {
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "doc_type",
+          "filename",
+          "created_at"
+        ],
+        "title": "DocumentOut",
         "type": "object"
       },
       "EducationIn": {

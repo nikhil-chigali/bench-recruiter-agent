@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 
 from httpx import ASGITransport, AsyncClient
 
@@ -8,6 +8,7 @@ from callup.db import repositories
 from callup.db.models import (
     Candidate,
     CandidateCertification,
+    CandidateDocument,
     CandidateEducation,
     CandidateExperience,
     CandidateProject,
@@ -136,6 +137,7 @@ def _candidate(owner_id: uuid.UUID, status: str = "on_bench") -> Candidate:
         primary_skills=["Java"],
     )
     cand.experience = []
+    cand.documents = []
     return cand
 
 
@@ -493,6 +495,15 @@ def _detailed_candidate(owner_id: uuid.UUID) -> Candidate:
             verification_url=None,
         )
     ]
+    cand.documents = [
+        CandidateDocument(
+            id=uuid.uuid4(),
+            doc_type="visa_proof",
+            storage_path="org/cand/abc.pdf",
+            filename="visa.pdf",
+            created_at=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+    ]
     return cand
 
 
@@ -524,6 +535,10 @@ async def test_get_candidate_detail_shape(monkeypatch):
         assert len(body["projects"]) == 1
         assert len(body["certifications"]) == 1
         assert body["certifications"][0]["name"] == "AWS SAA"
+        assert len(body["documents"]) == 1
+        assert body["documents"][0]["doc_type"] == "visa_proof"
+        assert body["documents"][0]["filename"] == "visa.pdf"
+        assert "storage_path" not in body["documents"][0]  # internal, never exposed
     finally:
         app.dependency_overrides.clear()
 

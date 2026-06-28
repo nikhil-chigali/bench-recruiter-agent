@@ -277,6 +277,7 @@ async def get_candidate_detail(
             selectinload(Candidate.education),
             selectinload(Candidate.projects),
             selectinload(Candidate.certifications),
+            selectinload(Candidate.documents),
         )
     )
     result = await session.execute(stmt)
