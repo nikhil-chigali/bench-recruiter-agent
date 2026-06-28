@@ -294,7 +294,8 @@ class CandidateCreate(BaseModel):
 
 class CandidateUpdate(BaseModel):
     """Partial update for a candidate's Overview + assignee. Every field is optional; only the
-    fields the client actually sends are applied (the route uses ``model_dump(exclude_unset=True)``).
+    fields the client actually sends are applied (the route uses
+    ``model_dump(exclude_unset=True)``).
     """
 
     status: str | None = None

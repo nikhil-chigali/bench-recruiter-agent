@@ -265,7 +265,10 @@ async def get_candidate(
 async def get_candidate_detail(
     session: AsyncSession, candidate_id: uuid.UUID, org_id: uuid.UUID
 ) -> Candidate | None:
-    """One candidate scoped to an org with all profile children eager-loaded (None if not in org)."""
+    """One candidate scoped to an org with all profile children eager-loaded.
+
+    Returns None if the candidate is not in the org.
+    """
     stmt = (
         select(Candidate)
         .where(Candidate.id == candidate_id, Candidate.org_id == org_id)
