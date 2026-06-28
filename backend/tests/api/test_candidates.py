@@ -1225,3 +1225,109 @@ async def test_upload_cross_org_returns_404(monkeypatch):
         assert resp.status_code == 404
     finally:
         app.dependency_overrides.clear()
+
+
+DOC = uuid.uuid4()
+
+
+def _candidate_with_doc(owner_id: uuid.UUID) -> Candidate:
+    cand = _detailed_candidate(owner_id)
+    cand.documents = [
+        CandidateDocument(
+            id=DOC,
+            doc_type="visa_proof",
+            storage_path=f"{ORG}/{CAND}/abc.pdf",
+            filename="visa.pdf",
+        )
+    ]
+    return cand
+
+
+async def test_download_document_returns_signed_url(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _candidate_with_doc(ACTOR)
+
+    async def fake_signed(path, expires_in=300):
+        captured["path"] = path
+        captured["expires_in"] = expires_in
+        return "https://signed.example/abc.pdf?token=t"
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(storage, "create_signed_url", fake_signed)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}/documents/{DOC}/download")
+        assert resp.status_code == 200
+        assert resp.json()["url"] == "https://signed.example/abc.pdf?token=t"
+        assert captured["path"] == f"{ORG}/{CAND}/abc.pdf"
+        assert captured["expires_in"] == 300
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_download_unknown_document_returns_404(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)  # has a different document id
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.get(f"/candidates/{CAND}/documents/{uuid.uuid4()}/download")
+        assert resp.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_delete_document_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _candidate_with_doc(ACTOR)
+
+    async def fake_remove(path):
+        captured["removed"] = path
+
+    async def fake_delete(session, candidate, document_id):
+        captured["deleted"] = document_id
+        candidate.documents = []
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "delete_document", fake_delete)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    monkeypatch.setattr(storage, "remove", fake_remove)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.delete(f"/candidates/{CAND}/documents/{DOC}")
+        assert resp.status_code == 200
+        assert resp.json()["documents"] == []
+        assert captured["removed"] == f"{ORG}/{CAND}/abc.pdf"
+        assert captured["deleted"] == DOC
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_delete_recruiter_cannot_delete_others(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _candidate_with_doc(OTHER)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.delete(f"/candidates/{CAND}/documents/{DOC}")
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.clear()

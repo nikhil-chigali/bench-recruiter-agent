@@ -13,6 +13,7 @@ from callup.api.schemas import (
     CertificationIn,
     CertificationOut,
     DocumentOut,
+    DocumentUrlOut,
     EducationIn,
     EducationOut,
     ExperienceIn,
@@ -288,5 +289,48 @@ async def upload_document(
     updated = await repositories.add_document(
         session, candidate, doc_type.value, path, file.filename
     )
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.get(
+    "/candidates/{candidate_id}/documents/{document_id}/download",
+    response_model=DocumentUrlOut,
+)
+async def download_document(
+    candidate_id: uuid.UUID,
+    document_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+) -> DocumentUrlOut:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    doc = next((d for d in candidate.documents if d.id == document_id), None)
+    if doc is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "document not found")
+    url = await storage.create_signed_url(doc.storage_path)
+    return DocumentUrlOut(url=url)
+
+
+@router.delete(
+    "/candidates/{candidate_id}/documents/{document_id}", response_model=CandidateDetail
+)
+async def delete_document(
+    candidate_id: uuid.UUID,
+    document_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    doc = next((d for d in candidate.documents if d.id == document_id), None)
+    if doc is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "document not found")
+    await storage.remove(doc.storage_path)
+    updated = await repositories.delete_document(session, candidate, document_id)
     member = await repositories.get_member(session, updated.user_id, actor.org_id)
     return _detail(updated, member.name if member is not None else "—")

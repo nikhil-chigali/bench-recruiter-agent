@@ -104,6 +104,10 @@ class DocumentOut(BaseModel):
     created_at: _dt.datetime
 
 
+class DocumentUrlOut(BaseModel):
+    url: str
+
+
 class CandidateDetail(BaseModel):
     id: uuid.UUID
     name: str
