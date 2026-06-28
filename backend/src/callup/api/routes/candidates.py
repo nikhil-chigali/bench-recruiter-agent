@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from callup.api.deps import CurrentUser, SessionDep
@@ -20,8 +20,9 @@ from callup.api.schemas import (
     ProjectOut,
 )
 from callup.db import repositories
-from callup.db.enums import RecruiterRole
+from callup.db.enums import DocumentType, RecruiterRole
 from callup.db.models import Candidate, User
+from callup.services import storage
 from callup.services.candidates.roster import years_of_experience
 
 router = APIRouter(tags=["candidates"])
@@ -46,6 +47,17 @@ async def _resolve_assignee(
     if member is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "assignee is not a member of this org")
     return member.id
+
+
+# Content-type → stored file extension. The authoritative allow-list for uploads.
+_ALLOWED_TYPES = {
+    "application/pdf": ".pdf",
+    "application/msword": ".doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+}
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
 def _card(c: Candidate, recruiter_name: str) -> CandidateCard:
@@ -244,5 +256,36 @@ async def replace_certifications(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
     _ensure_access(actor, candidate)
     updated = await repositories.replace_certifications(session, candidate, body)
+    member = await repositories.get_member(session, updated.user_id, actor.org_id)
+    return _detail(updated, member.name if member is not None else "—")
+
+
+@router.post(
+    "/candidates/{candidate_id}/documents",
+    response_model=CandidateDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_document(
+    candidate_id: uuid.UUID,
+    actor: CurrentUser,
+    session: SessionDep,
+    file: UploadFile,
+    doc_type: DocumentType = Form(...),  # noqa: B008
+) -> CandidateDetail:
+    candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
+    if candidate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "candidate not found")
+    _ensure_access(actor, candidate)
+    ext = _ALLOWED_TYPES.get(file.content_type or "")
+    if ext is None:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "unsupported file type")
+    content = await file.read()
+    if len(content) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "file exceeds 10 MB limit")
+    path = f"{actor.org_id}/{candidate_id}/{uuid.uuid4()}{ext}"
+    await storage.upload(path, content, file.content_type)
+    updated = await repositories.add_document(
+        session, candidate, doc_type.value, path, file.filename
+    )
     member = await repositories.get_member(session, updated.user_id, actor.org_id)
     return _detail(updated, member.name if member is not None else "—")

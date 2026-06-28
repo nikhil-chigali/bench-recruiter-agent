@@ -16,6 +16,7 @@ from callup.db.models import (
 )
 from callup.db.session import get_session
 from callup.main import app
+from callup.services import storage
 
 ORG = uuid.uuid4()
 ACTOR = uuid.uuid4()
@@ -1067,5 +1068,160 @@ async def test_replace_experience_bad_dates_returns_422(monkeypatch):
                 json=[{"company": "Acme", "start_date": "2022-01-01", "end_date": "2020-01-01"}],
             )
         assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_document_success(monkeypatch):
+    captured = {}
+
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    async def fake_upload(path, content, content_type):
+        captured["path"] = path
+        captured["content"] = content
+        captured["content_type"] = content_type
+
+    async def fake_add(session, candidate, doc_type, storage_path, filename):
+        captured["doc_type"] = doc_type
+        captured["storage_path"] = storage_path
+        captured["filename"] = filename
+        return candidate
+
+    async def fake_get_member(session, user_id, org_id):
+        return _actor("recruiter")
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(repositories, "add_document", fake_add)
+    monkeypatch.setattr(repositories, "get_member", fake_get_member)
+    monkeypatch.setattr(storage, "upload", fake_upload)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("visa.pdf", b"PDFDATA", "application/pdf")},
+                data={"doc_type": "visa_proof"},
+            )
+        assert resp.status_code == 201
+        assert captured["content"] == b"PDFDATA"
+        assert captured["content_type"] == "application/pdf"
+        assert captured["doc_type"] == "visa_proof"
+        assert captured["filename"] == "visa.pdf"
+        assert captured["storage_path"].startswith(f"{ORG}/{CAND}/")
+        assert captured["storage_path"].endswith(".pdf")
+        assert captured["path"] == captured["storage_path"]  # same path to storage + DB
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_rejects_unsupported_type_returns_415(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    called = {"uploaded": False}
+
+    async def fake_upload(path, content, content_type):
+        called["uploaded"] = True
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(storage, "upload", fake_upload)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("evil.exe", b"MZ", "application/x-msdownload")},
+                data={"doc_type": "other"},
+            )
+        assert resp.status_code == 415
+        assert called["uploaded"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_rejects_oversize_returns_413(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    called = {"uploaded": False}
+
+    async def fake_upload(path, content, content_type):
+        called["uploaded"] = True
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    monkeypatch.setattr(storage, "upload", fake_upload)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        big = b"0" * (10 * 1024 * 1024 + 1)
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("big.pdf", big, "application/pdf")},
+                data={"doc_type": "other"},
+            )
+        assert resp.status_code == 413
+        assert called["uploaded"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_invalid_doc_type_returns_422(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(ACTOR)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("x.pdf", b"x", "application/pdf")},
+                data={"doc_type": "bogus"},
+            )
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_recruiter_cannot_upload_to_others(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return _detailed_candidate(OTHER)
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("recruiter")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("x.pdf", b"x", "application/pdf")},
+                data={"doc_type": "other"},
+            )
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.clear()
+
+
+async def test_upload_cross_org_returns_404(monkeypatch):
+    async def fake_get_detail(session, candidate_id, org_id):
+        return None
+
+    monkeypatch.setattr(repositories, "get_candidate_detail", fake_get_detail)
+    app.dependency_overrides[get_current_user] = lambda: _actor("owner")
+    app.dependency_overrides[get_session] = lambda: _Session()
+    try:
+        async with await _client() as c:
+            resp = await c.post(
+                f"/candidates/{CAND}/documents",
+                files={"file": ("x.pdf", b"x", "application/pdf")},
+                data={"doc_type": "other"},
+            )
+        assert resp.status_code == 404
     finally:
         app.dependency_overrides.clear()
