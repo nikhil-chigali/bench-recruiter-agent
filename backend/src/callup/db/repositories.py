@@ -18,6 +18,7 @@ from callup.db.enums import CandidateStatus, InvitationStatus, RecruiterRole
 from callup.db.models import (
     Candidate,
     CandidateCertification,
+    CandidateDocument,
     CandidateEducation,
     CandidateExperience,
     CandidateProject,
@@ -483,6 +484,52 @@ async def replace_certifications(
         )
         for ct in items
     ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def add_document(
+    session: AsyncSession,
+    candidate: Candidate,
+    doc_type: str,
+    storage_path: str,
+    filename: str | None,
+) -> Candidate:
+    """Append one document row to a candidate and return it detail-loaded.
+
+    The PK is captured before commit because the default expire-on-commit would otherwise turn
+    the post-commit child reads into illegal async lazy loads; we re-fetch with
+    ``get_candidate_detail`` to return a fully eager-loaded graph.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.documents.append(
+        CandidateDocument(
+            org_id=org_id,
+            doc_type=doc_type,
+            storage_path=storage_path,
+            filename=filename,
+        )
+    )
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def delete_document(
+    session: AsyncSession, candidate: Candidate, document_id: uuid.UUID
+) -> Candidate:
+    """Remove the candidate's document with ``document_id`` and return it detail-loaded.
+
+    Filtering the collection lets the ``delete-orphan`` cascade delete the row; the PK is captured
+    before commit so the post-commit re-fetch (eager) is not an illegal async lazy load.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.documents = [d for d in candidate.documents if d.id != document_id]
     await session.commit()
     refreshed = await get_candidate_detail(session, candidate_id, org_id)
     assert refreshed is not None  # just updated within this transaction
