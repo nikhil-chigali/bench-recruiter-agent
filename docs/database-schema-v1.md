@@ -61,6 +61,7 @@ erDiagram
     }
     CANDIDATE_EDUCATION {
         uuid id PK
+        uuid org_id FK
         uuid candidate_id FK
         text university
         text location
@@ -72,6 +73,7 @@ erDiagram
     }
     CANDIDATE_EXPERIENCE {
         uuid id PK
+        uuid org_id FK
         uuid candidate_id FK
         text company
         text position
@@ -82,6 +84,7 @@ erDiagram
     }
     CANDIDATE_CERTIFICATION {
         uuid id PK
+        uuid org_id FK
         uuid candidate_id FK
         text name
         text issued_by
@@ -91,6 +94,7 @@ erDiagram
     }
     CANDIDATE_PROJECT {
         uuid id PK
+        uuid org_id FK
         uuid candidate_id FK
         text title
         text project_link
@@ -100,6 +104,7 @@ erDiagram
     }
     CANDIDATE_DOCUMENT {
         uuid id PK
+        uuid org_id FK
         uuid candidate_id FK
         text doc_type "see enums"
         text storage_path "Supabase Storage"
@@ -160,9 +165,11 @@ erDiagram
   `string[]`) are recruiter-curated. `years_experience` is **not** a column — it is derived
   on read from `candidate_experience` date ranges (null end = present).
 - **Tenancy:** `org_id` on every business table marks the owning organization (the
-  data-isolation boundary). MVP is single-org; multi-recruiter is later enabled via RLS +
-  middleware, never a column-shape migration. Distinct from `user_id`, which is
-  candidate ownership within an org.
+  data-isolation boundary) — **including the candidate child tables** (`candidate_experience`,
+  `candidate_education`, `candidate_project`, `candidate_certification`, `candidate_document`),
+  which carry `org_id` in addition to their `candidate_id`. MVP is single-org; multi-recruiter is
+  later enabled via RLS + middleware, never a column-shape migration. Distinct from `user_id`,
+  which is candidate ownership within an org.
 - **Org & roles:** `org_id` is a FK to `ORG`. `users.role` (`owner | admin |
   recruiter`) and `org.owner_user_id` model who administers the org. Role-gated team
   management — invitations, role changes, member removal, ownership transfer, and org
