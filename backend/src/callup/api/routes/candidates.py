@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -270,7 +271,7 @@ async def upload_document(
     actor: CurrentUser,
     session: SessionDep,
     file: UploadFile,
-    doc_type: DocumentType = Form(...),  # noqa: B008
+    doc_type: Annotated[DocumentType, Form()],
 ) -> CandidateDetail:
     candidate = await repositories.get_candidate_detail(session, candidate_id, actor.org_id)
     if candidate is None:
