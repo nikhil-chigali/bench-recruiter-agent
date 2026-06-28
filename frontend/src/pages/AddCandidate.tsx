@@ -12,7 +12,7 @@ import BasicsStep from '@/components/wizard/BasicsStep'
 import ExperienceStep from '@/components/wizard/ExperienceStep'
 import EducationStep from '@/components/wizard/EducationStep'
 import ProjectsCertsStep from '@/components/wizard/ProjectsCertsStep'
-import DocumentsStep from '@/components/wizard/DocumentsStep'
+import DocumentsStep, { type StagedDoc } from '@/components/wizard/DocumentsStep'
 import ReviewStep from '@/components/wizard/ReviewStep'
 
 const STEPS = [
@@ -88,6 +88,7 @@ export default function AddCandidate() {
   const [draft, setDraft] = useState<CandidateDraft>(() => loadDraft() ?? EMPTY_DRAFT)
   const [step, setStep] = useState(0)
   const [recruiters, setRecruiters] = useState<{ id: string; name: string }[]>([])
+  const [docs, setDocs] = useState<StagedDoc[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showErrors, setShowErrors] = useState(false)
@@ -154,8 +155,21 @@ export default function AddCandidate() {
     setError(null)
     try {
       const created = await api.post<CandidateDetail>('/candidates', toPayload(draft, isManager))
+      // The candidate now exists; upload staged documents against its id. A failed upload is
+      // non-fatal — the candidate is created, so navigate to the profile to finish there.
+      let uploadFailed = false
+      for (const d of docs) {
+        const form = new FormData()
+        form.append('file', d.file)
+        form.append('doc_type', d.docType)
+        try {
+          await api.upload<CandidateDetail>(`/candidates/${created.id}/documents`, form)
+        } catch {
+          uploadFailed = true
+        }
+      }
       clearDraft()
-      navigate(`/candidates/${created.id}`)
+      navigate(`/candidates/${created.id}`, uploadFailed ? { state: { uploadFailed: true } } : undefined)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create candidate')
     } finally {
@@ -200,7 +214,7 @@ export default function AddCandidate() {
             {step === 1 && <ExperienceStep draft={draft} update={update} />}
             {step === 2 && <EducationStep draft={draft} update={update} />}
             {step === 3 && <ProjectsCertsStep draft={draft} update={update} />}
-            {step === 4 && <DocumentsStep />}
+            {step === 4 && <DocumentsStep docs={docs} setDocs={setDocs} />}
             {step === 5 && <ReviewStep draft={draft} update={update} isManager={isManager} recruiters={recruiters} />}
 
             {error && <p className="mt-4 text-[13px] text-destructive">{error}</p>}
