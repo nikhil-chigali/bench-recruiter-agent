@@ -37,7 +37,8 @@ async def test_upload_puts_bytes_with_auth_and_content_type(monkeypatch):
 
 async def test_create_signed_url_builds_absolute_url(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"signedURL": "/object/sign/bucket/org/cand/abc.pdf?token=t"})
+        body = {"signedURL": "/object/sign/bucket/org/cand/abc.pdf?token=t"}
+        return httpx.Response(200, json=body)
 
     monkeypatch.setattr(storage, "_client", _mock(handler))
     monkeypatch.setattr(storage, "supabase_service_key", lambda: "svc-key")
