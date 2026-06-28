@@ -1,0 +1,38 @@
+// Public surface of the generated backend contract. Regenerate `openapi.d.ts` with
+// `pnpm gen:types`. Add friendly aliases here as consumers need them (see Chunk 2.5+).
+export type * from './openapi'
+
+import type { components } from './openapi'
+
+/** Backend `GET /candidates` card (generated). */
+export type CandidateCard = components['schemas']['CandidateCard']
+
+/** Backend `GET /members` row (generated). */
+export type Member = components['schemas']['MemberOut']
+/** Backend `GET /invitations` row (generated). */
+export type Invitation = components['schemas']['InvitationOut']
+/** Backend `POST /invitations` response — invitation plus its accept URL (generated). */
+export type InvitationCreated = components['schemas']['InvitationCreatedOut']
+/** Backend `GET /invitations/lookup` preview (generated). */
+export type InvitationPreview = components['schemas']['InvitationPreviewOut']
+
+/** Backend `UserOut` — the authenticated user + org (generated). */
+export type User = components['schemas']['UserOut']
+/** Backend `GET /me` response (generated). */
+export type Me = components['schemas']['MeOut']
+
+/** Backend `GET /candidates/:id` full profile (generated). */
+export type CandidateDetail = components['schemas']['CandidateDetail']
+
+/** Backend `POST /candidates` request body (generated). */
+export type CandidateCreate = components['schemas']['CandidateCreate']
+
+/** Backend `PATCH /candidates/:id` request body (generated). */
+export type CandidateUpdate = components['schemas']['CandidateUpdate']
+
+/** Backend candidate child-record inputs (generated) — used by the create wizard and the
+ *  profile section editors. */
+export type ExperienceIn = components['schemas']['ExperienceIn']
+export type EducationIn = components['schemas']['EducationIn']
+export type ProjectIn = components['schemas']['ProjectIn']
+export type CertificationIn = components['schemas']['CertificationIn']

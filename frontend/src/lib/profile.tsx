@@ -10,19 +10,10 @@ import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 import { useAuth } from '@/lib/auth'
 
-export type User = {
-  id: string
-  email: string
-  name: string
-  role: string
-  org_id: string
-  org_name: string
-}
+import type { Me, User } from '@callup/shared-types'
 
-type MeResponse = {
-  onboarded: boolean
-  user: User | null
-}
+// Re-exported so `@/lib/profile` stays the import site for `User` across the app.
+export type { User }
 
 type ProfileState = {
   loading: boolean
@@ -45,7 +36,7 @@ const RESET_STATE: ProfileState = {
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { session, signOut } = useAuth()
+  const { session, loading: authLoading, signOut } = useAuth()
   const [state, setState] = useState<ProfileState>({
     loading: true,
     onboarded: false,
@@ -56,7 +47,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const me = await api.get<MeResponse>('/me')
+      const me = await api.get<Me>('/me')
       setState({ loading: false, onboarded: me.onboarded, user: me.user, error: null })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
@@ -72,12 +63,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [signOut])
 
   useEffect(() => {
+    // Wait for the initial auth resolution before deciding anything. `session` is
+    // transiently null while Supabase restores it on a cold load; acting on that
+    // null would flip `loading` to false and bounce a deep link through
+    // RequireOnboarded before the profile fetch even starts.
+    if (authLoading) return
     if (!session) {
       setState(RESET_STATE)
       return
     }
     void load()
-  }, [session, load])
+  }, [authLoading, session, load])
 
   return (
     <ProfileContext.Provider value={{ ...state, refresh: load }}>

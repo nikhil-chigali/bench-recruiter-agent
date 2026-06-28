@@ -7,13 +7,35 @@ combined with vector distance ORDER BY) is implemented here in Phase 3.
 
 import uuid
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from callup.db.enums import InvitationStatus, RecruiterRole
-from callup.db.models import Invitation, Org, User
+from callup.db.enums import CandidateStatus, InvitationStatus, RecruiterRole
+from callup.db.models import (
+    Candidate,
+    CandidateCertification,
+    CandidateEducation,
+    CandidateExperience,
+    CandidateProject,
+    Invitation,
+    Org,
+    User,
+)
+
+if TYPE_CHECKING:
+    # Type-only import: the API request models are read for their attributes here, but the
+    # db layer must not import the api layer at runtime (one-directional dependency).
+    from callup.api.schemas import (
+        CandidateCreate,
+        CertificationIn,
+        EducationIn,
+        ExperienceIn,
+        ProjectIn,
+    )
 
 
 async def get_user(session: AsyncSession, user_id: uuid.UUID) -> User | None:
@@ -206,3 +228,261 @@ async def delete_org(session: AsyncSession, org: Org) -> None:
     await session.execute(delete(User).where(User.org_id == org.id))
     await session.execute(delete(Org).where(Org.id == org.id))
     await session.commit()
+
+
+async def list_candidates(
+    session: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID | None = None
+) -> list[Candidate]:
+    """Candidates in an org, newest first, with experience eager-loaded.
+
+    When ``user_id`` is given, restrict to that assignee (recruiter-scoped view).
+    """
+    stmt = (
+        select(Candidate)
+        .where(Candidate.org_id == org_id)
+        .options(selectinload(Candidate.experience))
+        .order_by(Candidate.created_at.desc())
+    )
+    if user_id is not None:
+        stmt = stmt.where(Candidate.user_id == user_id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_candidate(
+    session: AsyncSession, candidate_id: uuid.UUID, org_id: uuid.UUID
+) -> Candidate | None:
+    """One candidate scoped to an org, with experience eager-loaded (None if not in the org)."""
+    stmt = (
+        select(Candidate)
+        .where(Candidate.id == candidate_id, Candidate.org_id == org_id)
+        .options(selectinload(Candidate.experience))
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_candidate_detail(
+    session: AsyncSession, candidate_id: uuid.UUID, org_id: uuid.UUID
+) -> Candidate | None:
+    """One candidate scoped to an org with all profile children eager-loaded.
+
+    Returns None if the candidate is not in the org.
+    """
+    stmt = (
+        select(Candidate)
+        .where(Candidate.id == candidate_id, Candidate.org_id == org_id)
+        .options(
+            selectinload(Candidate.experience),
+            selectinload(Candidate.education),
+            selectinload(Candidate.projects),
+            selectinload(Candidate.certifications),
+        )
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def update_candidate(session: AsyncSession, candidate: Candidate, changes: dict) -> Candidate:
+    """Apply a partial set of column changes and return the candidate detail-loaded.
+
+    ``changes`` is the caller's already-validated field→value map (from
+    ``CandidateUpdate.model_dump(exclude_unset=True)``); only those columns are written. The PK
+    is captured before commit because the default expire-on-commit would otherwise turn the
+    post-commit child reads into illegal async lazy loads; we re-fetch with
+    ``get_candidate_detail`` to return a fully eager-loaded graph.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    # The blind setattr loop is safe ONLY because ``changes`` is the dump of a CandidateUpdate,
+    # whose Pydantic v2 default (extra="ignore") drops unknown keys — so identity/derived columns
+    # (id, org_id, years_experience, …) never reach here. Do not feed this raw client input.
+    for field, value in changes.items():
+        setattr(candidate, field, value)
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def create_candidate(
+    session: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: "CandidateCreate",
+) -> Candidate:
+    """Persist a candidate and all its children in one transaction; return it detail-loaded.
+
+    The PK is captured before commit because the default expire-on-commit would otherwise
+    turn the post-commit child reads into illegal async lazy loads; we re-fetch with
+    ``get_candidate_detail`` to return a fully eager-loaded graph.
+    """
+    candidate = Candidate(
+        org_id=org_id,
+        user_id=user_id,
+        name=data.name,
+        title=data.title,
+        status=CandidateStatus.ON_BENCH.value,
+        primary_skills=data.primary_skills,
+        work_authorization=data.work_authorization,
+        location=data.location,
+        email=data.email,
+        phone=data.phone,
+        linkedin_url=data.linkedin_url,
+        github_url=data.github_url,
+        portfolio_url=data.portfolio_url,
+        summary=data.summary,
+        experience=[
+            CandidateExperience(
+                org_id=org_id,
+                company=e.company,
+                position=e.position,
+                start_date=e.start_date,
+                end_date=e.end_date,
+                description=e.description,
+                tech_stack=e.tech_stack,
+            )
+            for e in data.experience
+        ],
+        education=[
+            CandidateEducation(
+                org_id=org_id,
+                university=ed.university,
+                degree=ed.degree,
+                location=ed.location,
+                cgpa=ed.cgpa,
+                coursework=ed.coursework,
+                start_date=ed.start_date,
+                end_date=ed.end_date,
+            )
+            for ed in data.education
+        ],
+        projects=[
+            CandidateProject(
+                org_id=org_id,
+                title=p.title,
+                project_link=p.project_link,
+                github_link=p.github_link,
+                description=p.description,
+                tech_stack=p.tech_stack,
+            )
+            for p in data.projects
+        ],
+        certifications=[
+            CandidateCertification(
+                org_id=org_id,
+                name=ct.name,
+                issued_by=ct.issued_by,
+                badge_url=ct.badge_url,
+                issued_on=ct.issued_on,
+                verification_url=ct.verification_url,
+            )
+            for ct in data.certifications
+        ],
+    )
+    session.add(candidate)
+    await session.flush()
+    candidate_id = candidate.id
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just created within this transaction
+    return refreshed
+
+
+async def replace_experience(
+    session: AsyncSession, candidate: Candidate, items: "list[ExperienceIn]"
+) -> Candidate:
+    """Replace all of a candidate's experience rows with ``items`` in one transaction.
+
+    Reassigning the collection lets the ``delete-orphan`` cascade remove the old rows; the PK is
+    captured before commit so the post-commit re-fetch (eager) is not an illegal async lazy load.
+    """
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.experience = [
+        CandidateExperience(
+            org_id=org_id,
+            company=e.company,
+            position=e.position,
+            start_date=e.start_date,
+            end_date=e.end_date,
+            description=e.description,
+            tech_stack=e.tech_stack,
+        )
+        for e in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_education(
+    session: AsyncSession, candidate: Candidate, items: "list[EducationIn]"
+) -> Candidate:
+    """Replace all of a candidate's education rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.education = [
+        CandidateEducation(
+            org_id=org_id,
+            university=ed.university,
+            degree=ed.degree,
+            location=ed.location,
+            cgpa=ed.cgpa,
+            coursework=ed.coursework,
+            start_date=ed.start_date,
+            end_date=ed.end_date,
+        )
+        for ed in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_projects(
+    session: AsyncSession, candidate: Candidate, items: "list[ProjectIn]"
+) -> Candidate:
+    """Replace all of a candidate's project rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.projects = [
+        CandidateProject(
+            org_id=org_id,
+            title=p.title,
+            project_link=p.project_link,
+            github_link=p.github_link,
+            description=p.description,
+            tech_stack=p.tech_stack,
+        )
+        for p in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed
+
+
+async def replace_certifications(
+    session: AsyncSession, candidate: Candidate, items: "list[CertificationIn]"
+) -> Candidate:
+    """Replace all of a candidate's certification rows with ``items`` in one transaction."""
+    candidate_id = candidate.id
+    org_id = candidate.org_id
+    candidate.certifications = [
+        CandidateCertification(
+            org_id=org_id,
+            name=ct.name,
+            issued_by=ct.issued_by,
+            badge_url=ct.badge_url,
+            issued_on=ct.issued_on,
+            verification_url=ct.verification_url,
+        )
+        for ct in items
+    ]
+    await session.commit()
+    refreshed = await get_candidate_detail(session, candidate_id, org_id)
+    assert refreshed is not None  # just updated within this transaction
+    return refreshed

@@ -46,3 +46,11 @@ jobs:
       # inlined with real values at the Railway build).
       - name: Build
         run: pnpm build
+
+      # Regenerate the shared types from the committed backend contract and fail on drift.
+      # The full repo is checked out, so ../backend/openapi.json is present here (unlike the
+      # Docker build, which only has the frontend/ context and uses the committed types).
+      - name: Shared types drift check
+        run: |
+          pnpm gen:types
+          git diff --exit-code packages/shared-types/openapi.d.ts

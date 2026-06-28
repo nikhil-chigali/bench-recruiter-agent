@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import type { Member } from '@callup/shared-types'
 import { useProfile } from '@/lib/profile'
 import { initialsOf, ROLE_LABEL, ROLE_BADGE } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-
-type Member = { id: string; name: string; email: string; role: string }
 
 function canManage(actorRole: string, targetRole: string): boolean {
   if (targetRole === 'owner') return false

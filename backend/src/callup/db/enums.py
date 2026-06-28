@@ -35,6 +35,12 @@ class ApplicationStatus(StrEnum):
     CLOSED = "closed"
 
 
+class CandidateStatus(StrEnum):
+    ON_BENCH = "on_bench"
+    INTERVIEWING = "interviewing"
+    PLACED = "placed"
+
+
 class SubmittedBy(StrEnum):
     AGENT = "agent"
     HUMAN = "human"

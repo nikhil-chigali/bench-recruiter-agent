@@ -1,0 +1,4 @@
+# Generated API contract — pin to LF so the byte-for-byte drift checks match on
+# Windows (core.autocrlf=true) and Linux CI alike.
+backend/openapi.json text eol=lf
+frontend/packages/shared-types/openapi.d.ts text eol=lf

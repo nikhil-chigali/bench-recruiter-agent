@@ -53,6 +53,9 @@ erDiagram
         jsonb other_urls
         text work_authorization "see enums"
         text summary
+        text status "see enums"
+        text title
+        jsonb primary_skills "string[]"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -142,6 +145,8 @@ erDiagram
   `USC` (US citizen), `GC` (green card), `GC_EAD`, `H1B`, `OPT`, `STEM_OPT`, `L2_EAD`,
   `TN`, `OTHER`. On a candidate it states their status; on a posting it states the
   required/accepted authorization.
+- **candidate.status:** `on_bench`, `interviewing`, `placed` (display: "On bench",
+  "Interviewing", "Placed"). The candidate's bench pipeline stage; defaults to `on_bench`.
 - **job_posting.employment_type:** `CONTRACT_C2C`, `CONTRACT_W2`, `FULL_TIME`.
 - **application.status:** `draft`, `applied`, `emailed`, `closed` (terminal: rejected /
   filled / withdrawn / gone cold).
@@ -151,6 +156,9 @@ erDiagram
 
 ## Notes & conventions
 
+- **Candidate headline fields:** `title` (role headline) and `primary_skills` (a
+  `string[]`) are recruiter-curated. `years_experience` is **not** a column — it is derived
+  on read from `candidate_experience` date ranges (null end = present).
 - **Tenancy:** `org_id` on every business table marks the owning organization (the
   data-isolation boundary). MVP is single-org; multi-recruiter is later enabled via RLS +
   middleware, never a column-shape migration. Distinct from `user_id`, which is
@@ -159,8 +167,9 @@ erDiagram
   recruiter`) and `org.owner_user_id` model who administers the org. Role-gated team
   management — invitations, role changes, member removal, ownership transfer, and org
   deletion — shipped in slice 3 (the `INVITATION` table was added by migration
-  `e3546d70251d`; it is not drawn in this v1 ERD). Still future scope: assigning candidates
-  across recruiters and org-level stats.
+  `e3546d70251d`; it is not drawn in this v1 ERD). Owner/admin can reassign a candidate to
+  another org member via `PATCH /candidates/:id` (slice 4 — candidates chunk 6). Still future
+  scope: org-level stats.
 - **User ↔ auth-user lifecycle:** `users.id` *is* the Supabase auth user id, so
   the two are deleted together. Removing a member (and deleting an org, which cascades to all
   its members) also deletes the corresponding `auth.users` row via the Supabase Auth Admin
