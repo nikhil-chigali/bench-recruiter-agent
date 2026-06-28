@@ -30,6 +30,9 @@ export type CandidateCreate = components['schemas']['CandidateCreate']
 /** Backend `PATCH /candidates/:id` request body (generated). */
 export type CandidateUpdate = components['schemas']['CandidateUpdate']
 
+/** Backend candidate document (generated). */
+export type DocumentOut = components['schemas']['DocumentOut']
+
 /** Backend candidate child-record inputs (generated) — used by the create wizard and the
  *  profile section editors. */
 export type ExperienceIn = components['schemas']['ExperienceIn']
