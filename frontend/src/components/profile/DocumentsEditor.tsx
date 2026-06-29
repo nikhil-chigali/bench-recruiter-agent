@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Download, Trash2 } from 'lucide-react'
 import type { CandidateDetail, DocumentOut } from '@callup/shared-types'
 import { api } from '@/lib/api'
 import { DOC_TYPES, docTypeLabel } from '@/lib/docTypes'
@@ -87,22 +88,26 @@ export default function DocumentsEditor({
                 </div>
                 <span className="text-[11px] text-muted-foreground">{docTypeLabel(doc.doc_type)}</span>
               </div>
-              <div className="flex flex-none items-center gap-2">
+              <div className="flex flex-none items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => download(doc)}
-                  className="rounded-[8px] border border-input bg-card px-3 py-1 text-[12.5px] hover:bg-[#f4f4f5]"
+                  aria-label="Download"
+                  title="Download"
+                  className="rounded-[8px] border border-input bg-card p-1.5 text-foreground hover:bg-[#f4f4f5]"
                 >
-                  Download
+                  <Download className="size-4" aria-hidden />
                 </button>
                 {canEdit && (
                   <button
                     type="button"
                     onClick={() => remove(doc)}
                     disabled={busy}
-                    className="text-[12.5px] text-destructive hover:underline disabled:opacity-50"
+                    aria-label="Delete"
+                    title="Delete"
+                    className="rounded-[8px] p-1.5 text-destructive hover:bg-destructive/10 disabled:opacity-50"
                   >
-                    Delete
+                    <Trash2 className="size-4" aria-hidden />
                   </button>
                 )}
               </div>
