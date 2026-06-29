@@ -14,6 +14,7 @@ import ExperienceEditor from '@/components/profile/ExperienceEditor'
 import EducationEditor from '@/components/profile/EducationEditor'
 import ProjectEditor from '@/components/profile/ProjectEditor'
 import CertificationEditor from '@/components/profile/CertificationEditor'
+import DocumentsEditor from '@/components/profile/DocumentsEditor'
 
 const NAV = [
   { id: 'summary', label: 'Summary' },
@@ -375,11 +376,13 @@ export default function CandidateProfile() {
                 canEdit={!editing}
                 onSaved={setDetail}
               />
-              <Section id="documents" title="Documents">
-                <p className="text-[13px] text-muted-foreground">
-                  Document uploads arrive in a later update.
-                </p>
-              </Section>
+              <DocumentsEditor
+                id="documents"
+                candidateId={detail.id}
+                items={detail.documents}
+                canEdit={!editing}
+                onSaved={setDetail}
+              />
             </div>
           </>
         )}

@@ -43,7 +43,8 @@ dashboard checklist.
 | `DATABASE_SSL` | — | Leave unset (defaults `true`). Supabase requires SSL. |
 | `ANTHROPIC_API_KEY` | 🔒 | **Required at boot** even though LLM features aren't wired yet — the field has no default, so the app won't start without it. |
 | `SUPABASE_URL` | public | e.g. `https://<ref>.supabase.co`. Needed for JWT verification (JWKS) and the Auth Admin client. |
-| `SUPABASE_SERVICE_KEY` | 🔒🔒 | Service-role key. Powers member/org auth-account deletion. **Backend only — never expose to the frontend.** |
+| `SUPABASE_SERVICE_KEY` | 🔒🔒 | Service-role key. Powers member/org auth-account deletion **and candidate-document Storage** (upload, signed download URLs, delete). **Backend only — never expose to the frontend.** |
+| `STORAGE_BUCKET` | — | Optional (defaults `candidate-files`). The private Supabase Storage bucket candidate documents live in — see **Storage bucket** below. |
 | `FRONTEND_ORIGIN` | public | The deployed frontend URL, for CORS. **No trailing slash** — CORS does an exact string match against the browser's `Origin` header (which never carries a trailing slash), so a value like `…railway.app/` rejects *every* request (preflight 400, no `access-control-allow-origin` on the response). Without it set at all, the browser blocks every API call. |
 | `ENVIRONMENT` | — | `production`. |
 
@@ -89,6 +90,24 @@ Connect dialog:
 2. Change the scheme to `postgresql+asyncpg://`.
 3. Remove any `?sslmode=...` (asyncpg rejects it; SSL is handled by `DATABASE_SSL=true`).
 4. Put the password in `DATABASE_PASSWORD` rather than inline.
+
+---
+
+## Storage bucket
+
+Candidate documents (work-authorization proof, etc.) are stored in a **private** Supabase
+Storage bucket named by `STORAGE_BUCKET` (default `candidate-files`). The backend proxies
+every upload/download/delete with the service-role key, so:
+
+1. In the Supabase dashboard → **Storage** → create a bucket named `candidate-files`
+   (or whatever `STORAGE_BUCKET` is set to) and keep it **private** (public access off).
+   Objects are laid out as `{org_id}/{candidate_id}/{uuid}{ext}`.
+2. No public read policy or RLS is needed — the bucket is reached only via the backend's
+   service key; downloads are handed to the browser as short-lived **signed URLs** (300 s).
+
+If the bucket is missing, document upload returns a backend error at runtime (the rest of
+the app is unaffected). The bucket is **not** created by migrations — it's a one-time
+dashboard step per environment.
 
 ---
 
@@ -188,7 +207,10 @@ both CI workflows (passing on `develop`), and `backend/.env.example`.
    `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Generate a public domain.
 5. **Close the loop.** Set the backend's `FRONTEND_ORIGIN` to the frontend domain and
    redeploy the backend (a variable change triggers it).
-6. **Smoke test.** Open the frontend domain, sign in, confirm the dashboard loads (backend
+6. **Create the Storage bucket.** In Supabase → Storage, create the private
+   `candidate-files` bucket (see **Storage bucket** above). Needed before candidate-document
+   upload/download works.
+7. **Smoke test.** Open the frontend domain, sign in, confirm the dashboard loads (backend
    reachable + CORS OK). Check Railway logs: migrations applied in pre-deploy, `/health`
    returning 200.
 

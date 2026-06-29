@@ -82,7 +82,7 @@ Keep imports consistent with the `@/*` alias (e.g. `@/lib/api`, `@/components/ui
 ## Backend integration
 
 - Talks to the Python backend over JSON. Base URL comes from `VITE_API_BASE_URL`.
-- Always use `api.get/post/put/patch/delete` from `@/lib/api` — it handles base URL, JSON, Supabase bearer token, timeouts, and typed `ApiError`s (including the `isNetworkError` flag that distinguishes CORS/network from HTTP errors).
+- Always use `api.get/post/put/patch/delete` from `@/lib/api` — it handles base URL, JSON, Supabase bearer token, timeouts, and typed `ApiError`s (including the `isNetworkError` flag that distinguishes CORS/network from HTTP errors). For file uploads use `api.upload(path, formData)` — it sends `multipart/form-data` (the `http.ts` client detects a `FormData` body and skips the JSON `Content-Type`); don't hand-build `fetch` calls.
 - Auth is Supabase email. The bearer token is injected automatically via the `api` client; never thread tokens through component props.
 - Shared request/response types come from `packages/shared-types` (generated from the backend's OpenAPI schema). Don't hand-redeclare backend shapes.
 

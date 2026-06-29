@@ -33,4 +33,6 @@ export const api = {
   patch: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     send<T>('PATCH', path, body, options),
   delete: <T>(path: string, options?: RequestOptions) => send<T>('DELETE', path, undefined, options),
+  upload: <T>(path: string, form: FormData, options?: RequestOptions) =>
+    send<T>('POST', path, form, options),
 }

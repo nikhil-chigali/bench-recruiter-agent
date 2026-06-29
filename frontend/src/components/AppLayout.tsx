@@ -23,7 +23,13 @@ export default function AppLayout({
     <div className="flex min-h-svh bg-background">
       <aside className="sticky top-0 flex h-svh w-[236px] flex-none flex-col border-r border-border bg-sidebar px-3.5 py-[18px]">
         <div className="flex items-center gap-[9px] px-2 pt-1 pb-[18px]">
-          <span className="size-[9px] rounded-full bg-brand" />
+          <img
+            src="/icons/favicon/favicon.svg"
+            alt=""
+            width={20}
+            height={20}
+            className="size-5 rounded-[5px]"
+          />
           <span className="text-[15px] font-semibold tracking-[-0.01em]">{user.org_name}</span>
         </div>
         <nav className="flex flex-col gap-0.5">

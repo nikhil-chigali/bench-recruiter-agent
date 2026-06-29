@@ -5,7 +5,7 @@ The FastAPI service and background workers for Callup. Read [../CLAUDE.md](../CL
 ## Stack
 
 - **FastAPI** + **async SQLAlchemy 2.0** + **asyncpg**. Pydantic v2 for all boundary I/O.
-- **Supabase Postgres + pgvector** for data; **Supabase Storage** for generated `.docx` artifacts.
+- **Supabase Postgres + pgvector** for data; **Supabase Storage** for generated `.docx` artifacts and uploaded candidate documents (via the thin REST client in `services/storage.py`, the only place object I/O uses the service key).
 - **Background workers** — a Postgres-backed queue (`SELECT … FOR UPDATE SKIP LOCKED`) by default. Two classes: autonomous (fetch/embed/match, cron-driven) and interactive (the Playwright apply session).
 - **Playwright** for the assisted-apply browser flow. Runs only in its own worker process — never on the request path.
 - **One LLM/embedding SDK** behind the `llm/` abstraction. No second provider SDK imported directly in services.
@@ -27,7 +27,7 @@ backend/
 │   ├── auth/              # jwt.py (JWKS token verification) + admin.py (Supabase Auth Admin client)
 │   ├── db/                # base.py, enums.py, models/ (package), session.py, repositories.py
 │   ├── llm/               # client.py, embeddings.py, prompts/
-│   ├── services/          # membership, fetch, candidates, match, generate, apply, outreach
+│   ├── services/          # membership, fetch, candidates, match, generate, apply, outreach, storage
 │   └── workers/           # queue.py, scheduler.py, tasks/
 ├── alembic/
 └── tests/

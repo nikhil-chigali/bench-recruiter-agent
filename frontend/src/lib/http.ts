@@ -39,13 +39,14 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   let response: Response
   try {
+    const isForm = body instanceof FormData
     response = await fetch(url, {
       method,
       headers: {
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       signal: controller.signal,
     })
   } catch (err) {

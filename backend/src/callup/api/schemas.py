@@ -97,6 +97,17 @@ class CertificationOut(BaseModel):
     verification_url: str | None
 
 
+class DocumentOut(BaseModel):
+    id: uuid.UUID
+    doc_type: str
+    filename: str | None
+    created_at: _dt.datetime
+
+
+class DocumentUrlOut(BaseModel):
+    url: str
+
+
 class CandidateDetail(BaseModel):
     id: uuid.UUID
     name: str
@@ -118,6 +129,7 @@ class CandidateDetail(BaseModel):
     education: list[EducationOut]
     projects: list[ProjectOut]
     certifications: list[CertificationOut]
+    documents: list[DocumentOut]
 
 
 def _clean_str_list(v: list[str] | None) -> list[str] | None:
