@@ -48,6 +48,7 @@ frontend/
 │   ├── App.tsx            # Router
 │   ├── main.tsx
 │   └── index.css          # Tailwind directives + global theme tokens
+├── public/                # served verbatim at web root (brand icons under icons/, favicon.svg)
 ├── index.html
 ├── vite.config.ts
 ├── tsconfig.json
@@ -67,6 +68,20 @@ Keep imports consistent with the `@/*` alias (e.g. `@/lib/api`, `@/components/ui
 
 - All env reads go through a single `src/lib/env.ts` module that validates required vars at boot. Never read `import.meta.env.X` directly in components.
 - Env vars are prefixed `VITE_` (Vite convention). Anything not prefixed is not exposed to the client.
+
+## Branding & icons
+
+- The brand mark is a `#5b46e0` rounded square with a white network graph. The canonical source
+  set lives at the repo root in `assets/icons/`; the **served** copy is in `public/icons/`
+  (favicons under `icons/favicon/`, PWA app icons under `icons/app/`, plus `icons/site.webmanifest`).
+  `public/` is served verbatim, so these resolve at `/icons/...`. When the mark changes, update
+  `assets/icons/` and re-copy into `public/icons/` — they're kept in sync by hand, not by a build step.
+- `index.html` wires the favicon links, `apple-touch-icon`, the manifest, and `theme-color`
+  (`#5b46e0`); the tab `<title>` is "Callup".
+- The in-app logo is the **`BrandMark`** component (`components/BrandMark.tsx`) — a lockup of the
+  icon (`<img src="/icons/favicon/favicon.svg">`) plus the "Callup" wordmark, with `light`
+  (white wordmark for dark surfaces) and `glow` props. Reuse it for any brand lockup; don't
+  hand-roll a logo. The sidebar org-name mark in `AppLayout.tsx` reuses the same icon directly.
 
 ## Deployment
 

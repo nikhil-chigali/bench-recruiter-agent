@@ -8,8 +8,11 @@ Callup automates bench-sales recruiting: fetch and normalize job postings, match
 callup/
 ├── backend/      # FastAPI + background workers (Python, uv) — Dockerfile for Railway
 ├── frontend/     # React SPA (Vite + TS, pnpm) — Dockerfile + Caddyfile for Railway
+├── assets/       # brand source assets (icons/ = favicon + app-icon master set + manifest)
 └── docs/         # scope, plans, schema, deployment guide
 ```
+
+`assets/icons/` holds the canonical brand icon set. The files that actually ship are a hand-maintained copy under `frontend/public/icons/` — keep the two in sync when the mark changes. See [`frontend/CLAUDE.md`](./frontend/CLAUDE.md) for the served layout and the in-app logo convention.
 
 Deployment: Railway hosts compute (API, workers, frontend); Supabase hosts Postgres + pgvector and Storage. Treat both as given — do not introduce alternative infra without a decision recorded in the commit. Each service deploys from its own `Dockerfile`; the full Railway setup (two services, env-var inventory, deploy order, secrets) is in [`docs/deployment.md`](./docs/deployment.md).
 
