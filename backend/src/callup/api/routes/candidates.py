@@ -314,9 +314,7 @@ async def download_document(
     return DocumentUrlOut(url=url)
 
 
-@router.delete(
-    "/candidates/{candidate_id}/documents/{document_id}", response_model=CandidateDetail
-)
+@router.delete("/candidates/{candidate_id}/documents/{document_id}", response_model=CandidateDetail)
 async def delete_document(
     candidate_id: uuid.UUID,
     document_id: uuid.UUID,

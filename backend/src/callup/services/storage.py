@@ -48,7 +48,5 @@ async def create_signed_url(path: str, expires_in: int = 300) -> str:
 async def remove(path: str) -> None:
     """Delete the object at ``path``. Raises on a non-2xx response."""
     async with _client() as client:
-        resp = await client.delete(
-            f"/object/{settings.storage_bucket}/{path}", headers=_auth()
-        )
+        resp = await client.delete(f"/object/{settings.storage_bucket}/{path}", headers=_auth())
         resp.raise_for_status()

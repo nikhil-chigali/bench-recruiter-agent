@@ -45,8 +45,7 @@ async def test_create_signed_url_builds_absolute_url(monkeypatch):
 
     url = await storage.create_signed_url("org/cand/abc.pdf", expires_in=300)
     assert url == (
-        f"{storage.settings.supabase_url}/storage/v1"
-        "/object/sign/bucket/org/cand/abc.pdf?token=t"
+        f"{storage.settings.supabase_url}/storage/v1" "/object/sign/bucket/org/cand/abc.pdf?token=t"
     )
 
 
