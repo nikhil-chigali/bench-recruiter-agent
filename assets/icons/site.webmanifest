@@ -1,0 +1,31 @@
+{
+  "name": "Callup",
+  "short_name": "Callup",
+  "description": "Bench-sales recruiting platform",
+  "theme_color": "#5b46e0",
+  "background_color": "#f4f2ec",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icons/favicon/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "icons/app/callup-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/app/callup-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icons/app/callup-icon-1024-square.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "maskable"
+    }
+  ]
+}
