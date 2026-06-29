@@ -13,8 +13,8 @@ Status: ⬜ not started · ▶ in progress · ✅ done
 | 1 | Auth + recruiter/org bootstrap | Email login → first sign-in establishes your identity | ✅ |
 | 2 | Onboarding + dashboard | First sign-in → onboarding (create org, become owner) → dashboard showing org + your role | ✅ |
 | 3 | Team invitations & roles | Owner/admin invite recruiters/admins via shareable link; members management + role-gated permissions | ✅ |
-| 4 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ▶ |
-| 5 | Candidate documents | Upload candidate files to Supabase Storage; list them on the candidate | ⬜ |
+| 4 | Candidate intake | Create / list / view candidates with the full profile (education, experience, certs, projects) | ✅ |
+| 5 | Candidate documents | Upload candidate files to Supabase Storage; list them on the candidate — **delivered as Slice 4 Chunk 8** | ✅ |
 | 6 | Job postings (manual) | Create / list / view job postings by hand, incl. hiring-side contact | ⬜ |
 | 7 | Job ingestion (Dice) | Autonomous worker fetches + normalizes + dedupes Dice postings into the same job list | ⬜ |
 | 8 | Matching | Embeddings + similarity + LLM re-rank; ranked candidate↔job matches surfaced in the UI | ⬜ |
